@@ -1,0 +1,68 @@
+volumes:
+  db_data:
+  minio_data:
+
+x-shared_environment: &shared_environment
+  DATABASE_HOST: db
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: &db_name ps_database
+  DATABASE_USERNAME: &db_username ps_user
+  DATABASE_PASSWORD: &db_password ps_password
+  MINIO_ENDPOINT: http://minio:9000
+  MINIO_USER: &minio_user minioadmin
+  MINIO_SECRET: &minio_password minioadmin
+  MINIO_BUCKET: photos
+
+services:
+  migrate:
+    image: ps-backend:latest
+    build:
+      context: .
+    environment:
+      <<: *shared_environment
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["migrate", "--yes"]
+
+  app:
+    image: ps-backend:latest
+    build:
+      context: .
+    environment:
+      <<: *shared_environment
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+    ports:
+      - '8080:8080'
+  db:
+    image: postgres:18-alpine
+    volumes:
+      - db_data:/var/lib/postgresql
+    environment:
+      POSTGRES_USER: *db_username
+      POSTGRES_PASSWORD: *db_password
+      POSTGRES_DB: *db_name
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ps_user -d ps_database"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  minio:
+    image: minio/minio:latest
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: *minio_user
+      MINIO_ROOT_PASSWORD: *minio_password
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    command: server /data --console-address ":9001"
