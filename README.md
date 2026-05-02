@@ -27,11 +27,14 @@ Migrations werden automatisch vor dem App-Start ausgeführt.
 ## Deploy to Server
 ### 0. Voraussetzung
 - rsync
-### 1. Verzeichnis kopieren
+### 1. Instanz stoppen
+In `~/geoguesser_backend` ausführen: ``docker compose down``
+
+### 2. Verzeichnis kopieren
 Der Befehl soll innerhalb des Projektverzeichnis ausgeführt werden
 
 ``rsync -av --exclude='.build' . local@141.45.191.253:~/geoguesser_backend/``
-### 2. Setup
+### 3. Setup
 Hier dann die Schritte des Setup nachholen
 
 # Development Infos
