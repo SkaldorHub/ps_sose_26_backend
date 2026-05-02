@@ -30,7 +30,7 @@ Migrations werden automatisch vor dem App-Start ausgeführt.
 ### 1. Verzeichnis kopieren
 Der Befehl soll innerhalb des Projektverzeichnis ausgeführt werden
 
-``rsync -av --exclude='.build' . user@server:/home/user/ps-backend/``
+``rsync -av --exclude='.build' . local@141.45.191.253:~/geoguesser_backend/``
 ### 2. Setup
 Hier dann die Schritte des Setup nachholen
 
