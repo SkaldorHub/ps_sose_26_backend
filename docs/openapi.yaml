@@ -205,17 +205,17 @@ paths:
   # ──────────────────────────────────────────
   # Round / Upload Phase
   # ──────────────────────────────────────────
-  /games/{gameId}/rounds/current:
+  /games/{gameId}/current:
     get:
       tags: [Round]
       summary: Aktuelle Runde abrufen
       responses:
         "200": { description: OK }
 
-  /games/{gameId}/rounds/current/photo:
+  /games/{gameId}/current/photo:
     post:
       tags: [Round]
-      summary: Foto hochladen (Fotograf)
+      summary: Foto hochladen
       responses:
         "201": { description: Created }
         "401": { description: Unauthorized }
@@ -224,7 +224,7 @@ paths:
         "409": { description: Conflict }
         "410": { description: Upload time expired }
 
-  /games/{gameId}/rounds/current/status:
+  /games/{gameId}/current/status:
     get:
       tags: [Round]
       summary: Upload-Status beider Fotografen
@@ -264,14 +264,14 @@ paths:
   # ──────────────────────────────────────────
   # Evaluation & Results
   # ──────────────────────────────────────────
-  /games/{gameId}/rounds/current/result:
+  /games/{gameId}/current/result:
     get:
       tags: [Results]
       summary: Rundenauswertung
       responses:
         "200": { description: OK }
 
-  /games/{gameId}/leaderboard:
+  /games/{gameId}/current/leaderboard:
     get:
       tags: [Results]
       summary: Aktuelles Leaderboard
@@ -281,7 +281,7 @@ paths:
   /games/{gameId}/result:
     get:
       tags: [Results]
-      summary: Endergebnis (Game Over)
+      summary: Endergebnis
       responses:
         "200": { description: OK }
 
