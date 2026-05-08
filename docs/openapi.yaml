@@ -1,6 +1,6 @@
 openapi: "3.0.3"
 info:
-  title: GeoGuessr Backend API
+  title: GeoGuesser Backend API
   version: "0.1.0"
 
 tags:
@@ -20,6 +20,7 @@ paths:
   /auth/register:
     post:
       tags: [Auth]
+      security: []
       summary: Register
       responses:
         "201": { description: Created }
@@ -29,6 +30,7 @@ paths:
   /auth/login:
     post:
       tags: [Auth]
+      security: []
       summary: Login
       responses:
         "202": { description: Login successful }
@@ -37,6 +39,7 @@ paths:
   /auth/logout:
     post:
       tags: [Auth]
+      security: []
       summary: Logout
       responses:
         "202": { description: Logout successful }
