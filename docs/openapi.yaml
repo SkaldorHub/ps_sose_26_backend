@@ -309,7 +309,13 @@ components:
 
   responses:
     Unauthorized:
-      description: JWT fehlt, abgelaufen oder ungültig
+      description: JWT invalid
+    Forbidden:
+      description: No permission for action in current role or phase
+    NotFound:
+      description: Resource not found
+    Conflict:
+      description: State not currently allowed
 
   schemas:
     GameStatus:
