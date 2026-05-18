@@ -3,6 +3,12 @@ info:
   title: GeoGuesser Backend API
   version: "0.1.0"
 
+servers:
+  - url: http://localhost:8080
+    description: Local Development Server
+  - url: https://pssose2026backend.f4.htw-berlin.de
+    description: Production Server
+
 tags:
   - name: Auth
   - name: Lobby

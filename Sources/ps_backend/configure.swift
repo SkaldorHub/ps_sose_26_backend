@@ -24,6 +24,13 @@ public func configure(_ app: Application) async throws {
         tls: .prefer(try .init(configuration: .clientDefault)))
     ), as: .psql)
 
+    let corsConfiguration = CORSMiddleware.Configuration(
+        allowedOrigin: .all,
+        allowedMethods: [.GET, .POST, .PUT, .DELETE, .PATCH, .OPTIONS],
+        allowedHeaders: [.accept, .authorization, .contentType, .origin]
+    )
+    app.middleware.use(CORSMiddleware(configuration: corsConfiguration), at: .beginning)
+
     // register routes
     try routes(app)
 }
