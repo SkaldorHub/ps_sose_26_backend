@@ -66,3 +66,12 @@ services:
       - '9000:9000'
       - '9001:9001'
     command: server /data --console-address ":9001"
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    environment:
+      SWAGGER_JSON: /openapi.yaml
+    volumes:
+      - ./Sources/ps_backend/openapi.yaml:/openapi.yaml:ro
+    ports:
+      - '8081:8080'

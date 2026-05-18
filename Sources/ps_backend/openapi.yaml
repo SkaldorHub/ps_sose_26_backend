@@ -19,6 +19,7 @@ paths:
   # ──────────────────────────────────────────
   /auth/register:
     post:
+      operationId: register
       tags: [Auth]
       security: []
       summary: Register
@@ -40,6 +41,7 @@ paths:
 
   /auth/login:
     post:
+      operationId: login
       tags: [Auth]
       security: []
       summary: Login
@@ -60,6 +62,7 @@ paths:
 
   /auth/logout:
     post:
+      operationId: logout
       tags: [Auth]
       summary: Logout
       responses:
@@ -72,6 +75,7 @@ paths:
   # ──────────────────────────────────────────
   /games:
     post:
+      operationId: createGame
       tags: [Lobby]
       summary: Create game
       requestBody:
@@ -92,6 +96,7 @@ paths:
 
   /games/join:
     post:
+      operationId: joinGame
       tags: [Lobby]
       summary: Join game by code
       requestBody:
@@ -116,6 +121,7 @@ paths:
 
   /games/{gameId}:
     get:
+      operationId: getGame
       tags: [Lobby]
       summary: Get game state
       parameters:
@@ -134,6 +140,7 @@ paths:
 
   /games/{gameId}/start:
     post:
+      operationId: startGame
       tags: [Lobby]
       summary: Start game
       parameters:
@@ -154,6 +161,7 @@ paths:
 
   /games/{gameId}/leave:
     post:
+      operationId: leaveGame
       tags: [Lobby]
       summary: Leave game
       parameters:
@@ -167,6 +175,7 @@ paths:
 
   /games/{gameId}/players:
     get:
+      operationId: listPlayers
       tags: [Lobby]
       summary: List players
       parameters:
@@ -187,6 +196,7 @@ paths:
 
   /games/{gameId}/players/{playerId}:
     delete:
+      operationId: kickPlayer
       tags: [Lobby]
       summary: Kick player
       parameters:
@@ -210,6 +220,7 @@ paths:
 
   /games/{gameId}/teams:
     get:
+      operationId: listTeams
       tags: [Lobby]
       summary: List teams
       parameters:
@@ -233,6 +244,7 @@ paths:
   # ──────────────────────────────────────────
   /games/{gameId}/current:
     get:
+      operationId: getCurrentRound
       tags: [Round]
       summary: Get current round
       parameters:
@@ -251,6 +263,7 @@ paths:
 
   /games/{gameId}/current/photo:
     post:
+      operationId: uploadPhoto
       tags: [Round]
       summary: Upload photo
       parameters:
@@ -279,6 +292,7 @@ paths:
         "410": { description: Upload time expired }
 
     put:
+      operationId: replacePhoto
       tags: [Round]
       summary: Replace photo
       parameters:
@@ -305,6 +319,7 @@ paths:
         "410": { description: Upload time expired }
 
     delete:
+      operationId: deletePhoto
       tags: [Round]
       summary: Delete photo
       parameters:
@@ -321,6 +336,7 @@ paths:
 
   /games/{gameId}/current/status:
     get:
+      operationId: getUploadStatus
       tags: [Round]
       summary: Get upload status of both photographers
       parameters:
@@ -342,6 +358,7 @@ paths:
   # ──────────────────────────────────────────
   /games/{gameId}/current/photo/{teamId}:
     get:
+      operationId: getTeamPhoto
       tags: [Guess]
       summary: Get opponent team's photo
       parameters:
@@ -369,6 +386,7 @@ paths:
 
   /games/{gameId}/current/guess:
     post:
+      operationId: submitGuess
       tags: [Guess]
       summary: Submit guess
       parameters:
@@ -397,6 +415,7 @@ paths:
 
   /games/{gameId}/current/guesses:
     get:
+      operationId: getGuesses
       tags: [Guess]
       summary: Get all submitted guesses
       parameters:
@@ -422,6 +441,7 @@ paths:
   # ──────────────────────────────────────────
   /games/{gameId}/current/result:
     get:
+      operationId: getCurrentResult
       tags: [Results]
       summary: Get current round result
       parameters:
@@ -440,6 +460,7 @@ paths:
 
   /games/{gameId}/current/leaderboard:
     get:
+      operationId: getLeaderboard
       tags: [Results]
       summary: Get current leaderboard
       parameters:
@@ -460,6 +481,7 @@ paths:
 
   /games/{gameId}/result:
     get:
+      operationId: getGameResult
       tags: [Results]
       summary: Get final game result
       parameters:
