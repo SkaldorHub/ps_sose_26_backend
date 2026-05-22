@@ -5,13 +5,13 @@ volumes:
 x-shared_environment: &shared_environment
   DATABASE_HOST: db
   DATABASE_PORT: "5432"
-  DATABASE_NAME: &db_name ps_database
-  DATABASE_USERNAME: &db_username ps_user
-  DATABASE_PASSWORD: &db_password ps_password
+  DATABASE_NAME: &db_name ${DATABASE_NAME:-ps_database}
+  DATABASE_USERNAME: &db_username ${DATABASE_USERNAME:-ps_user}
+  DATABASE_PASSWORD: &db_password ${DATABASE_PASSWORD:-ps_password}
   MINIO_ENDPOINT: http://minio:9000
-  MINIO_USER: &minio_user minioadmin
-  MINIO_SECRET: &minio_password minioadmin
-  MINIO_BUCKET: photos
+  MINIO_USER: &minio_user ${MINIO_USER:-minioadmin}
+  MINIO_SECRET: &minio_password ${MINIO_SECRET:-minioadmin}
+  MINIO_BUCKET: ${MINIO_BUCKET:-photos}
 
 services:
   migrate:
@@ -51,7 +51,7 @@ services:
     ports:
       - '5432:5432'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ps_user -d ps_database"]
+      test: ["CMD-SHELL", "pg_isready -U $${DATABASE_USERNAME} -d $${DATABASE_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -66,3 +66,12 @@ services:
       - '9000:9000'
       - '9001:9001'
     command: server /data --console-address ":9001"
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    environment:
+      SWAGGER_JSON: /openapi.yaml
+    volumes:
+      - ./Sources/ps_backend/openapi.yaml:/openapi.yaml:ro
+    ports:
+      - '8081:8080'

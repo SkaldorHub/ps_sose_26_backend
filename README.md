@@ -4,14 +4,12 @@ Vapor-Backend für die GeoGame iOS App.
 
 ## Stack
 
-| Komponente | Technologie                            |
+| Komponente | Technologie |
 |---|----------------------------------------|
 | Framework | [Vapor 4](https://vapor.codes) (Swift) |
-| Datenbank | PostgreSQL 18                          |
-| ORM | Fluent (PostgreSQL Driver)             |
-| Foto-Storage | MinIO (S3-kompatibel)                  |
-| Echtzeit | WebSockets (Vapor built-in)            |
-
+| Datenbank | PostgreSQL 18 |
+| ORM | Fluent (PostgreSQL Driver) |
+| Foto-Storage | MinIO (S3-kompatibel) |
 
 ## Setup
 ### 0. Voraussetzungen

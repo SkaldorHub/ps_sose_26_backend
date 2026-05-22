@@ -1,14 +1,7 @@
-import Fluent
 import Vapor
+import OpenAPIVapor
 
 func routes(_ app: Application) throws {
-    app.get { req async in
-        "It works!"
-    }
-
-    app.get("hello") { req async -> String in
-        "Hello, world!"
-    }
-
-    try app.register(collection: TodoController())
+    let transport = VaporTransport(routesBuilder: app)
+    try APIHandler().registerHandlers(on: transport)
 }

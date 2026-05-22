@@ -1,0 +1,723 @@
+openapi: "3.0.3"
+info:
+  title: GeoGuesser Backend API
+  version: "0.1.0"
+
+servers:
+  - url: http://localhost:8080
+    description: Local Development Server
+  - url: https://pssose2026backend.f4.htw-berlin.de
+    description: Production Server
+
+tags:
+  - name: Auth
+  - name: Lobby
+  - name: Round
+  - name: Guess
+  - name: Results
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ──────────────────────────────────────────
+  # Auth
+  # ──────────────────────────────────────────
+  /auth/register:
+    post:
+      operationId: register
+      tags: [Auth]
+      security: []
+      summary: Register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400": { description: Username or Password invalid }
+        "409": { description: Username already taken }
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [Auth]
+      security: []
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401": { description: Wrong credentials }
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [Auth]
+      summary: Logout
+      responses:
+        "204": { description: Logout successful }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ──────────────────────────────────────────
+  # Lobby / Game Management
+  # ──────────────────────────────────────────
+  /games:
+    post:
+      operationId: createGame
+      tags: [Lobby]
+      summary: Create game
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGameRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /games/join:
+    post:
+      operationId: joinGame
+      tags: [Lobby]
+      summary: Join game by code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinGameRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Invalid code
+        "409":
+          description: Game already started or full
+
+  /games/{gameId}:
+    get:
+      operationId: getGame
+      tags: [Lobby]
+      summary: Get game state
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /games/{gameId}/start:
+    post:
+      operationId: startGame
+      tags: [Lobby]
+      summary: Start game
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Not the host
+        "409":
+          description: Too few players or game already started
+
+  /games/{gameId}/leave:
+    post:
+      operationId: leaveGame
+      tags: [Lobby]
+      summary: Leave game
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "204": { description: No Content }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /games/{gameId}/players:
+    get:
+      operationId: listPlayers
+      tags: [Lobby]
+      summary: List players
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Player"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /games/{gameId}/players/{playerId}:
+    delete:
+      operationId: kickPlayer
+      tags: [Lobby]
+      summary: Kick player
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204": { description: No Content }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Not the host
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Game already started
+
+  /games/{gameId}/teams:
+    get:
+      operationId: listTeams
+      tags: [Lobby]
+      summary: List teams
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Team"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ──────────────────────────────────────────
+  # Round / Upload Phase
+  # ──────────────────────────────────────────
+  /games/{gameId}/current:
+    get:
+      operationId: getCurrentRound
+      tags: [Round]
+      summary: Get current round
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Round"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /games/{gameId}/current/photo:
+    post:
+      operationId: uploadPhoto
+      tags: [Round]
+      summary: Upload photo
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [photo]
+              properties:
+                photo:
+                  type: string
+                  format: binary
+      responses:
+        "201": { description: Photo uploaded successfully }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "410": { description: Upload time expired }
+
+    put:
+      operationId: replacePhoto
+      tags: [Round]
+      summary: Replace photo
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [photo]
+              properties:
+                photo:
+                  type: string
+                  format: binary
+      responses:
+        "200": { description: Photo replaced successfully }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "410": { description: Upload time expired }
+
+    delete:
+      operationId: deletePhoto
+      tags: [Round]
+      summary: Delete photo
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "204": { description: Photo deleted successfully }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "410": { description: Upload time expired }
+
+  /games/{gameId}/current/status:
+    get:
+      operationId: getUploadStatus
+      tags: [Round]
+      summary: Get upload status of both photographers
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ──────────────────────────────────────────
+  # Guess Phase
+  # ──────────────────────────────────────────
+  /games/{gameId}/current/photo/{teamId}:
+    get:
+      operationId: getTeamPhoto
+      tags: [Guess]
+      summary: Get opponent team's photo
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /games/{gameId}/current/guess:
+    post:
+      operationId: submitGuess
+      tags: [Guess]
+      summary: Submit guess
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GuessRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Guess"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /games/{gameId}/current/guesses:
+    get:
+      operationId: getGuesses
+      tags: [Guess]
+      summary: Get all submitted guesses
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Guess"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ──────────────────────────────────────────
+  # Evaluation & Results
+  # ──────────────────────────────────────────
+  /games/{gameId}/current/result:
+    get:
+      operationId: getCurrentResult
+      tags: [Results]
+      summary: Get current round result
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoundResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /games/{gameId}/current/leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [Results]
+      summary: Get current leaderboard
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /games/{gameId}/result:
+    get:
+      operationId: getGameResult
+      tags: [Results]
+      summary: Get final game result
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+# ──────────────────────────────────────────
+# Components
+# ──────────────────────────────────────────
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    GameId:
+      name: gameId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    Unauthorized:
+      description: JWT invalid
+    Forbidden:
+      description: No permission for action in current role or phase
+    NotFound:
+      description: Resource not found
+    Conflict:
+      description: State not currently allowed
+
+  schemas:
+    # ── Auth ──────────────────────────────
+    RegisterRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, example: "player1" }
+        password: { type: string, format: password, example: "secret123" }
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, example: "player1" }
+        password: { type: string, format: password, example: "secret123" }
+
+    AuthResponse:
+      type: object
+      required: [token, userId, username]
+      properties:
+        token: { type: string, example: "eyJhbGci..." }
+        userId: { type: string, format: uuid }
+        username: { type: string, example: "player1" }
+
+    # ── Game ──────────────────────────────
+    GameStatus:
+      type: string
+      enum: [waiting, active, finished]
+
+    Game:
+      type: object
+      required:
+        [
+          id,
+          code,
+          status,
+          hostId,
+          totalRounds,
+          currentRound,
+          maxPlayers,
+          createdAt,
+        ]
+      properties:
+        id: { type: string, format: uuid }
+        code:
+          type: string
+          pattern: "^[A-Z0-9]{6}$"
+          example: "ABC123"
+        status: { $ref: "#/components/schemas/GameStatus" }
+        hostId: { type: string, format: uuid }
+        totalRounds: { type: integer, example: 5 }
+        currentRound: { type: integer, example: 1 }
+        maxPlayers: { type: integer, example: 8 }
+        createdAt: { type: string, format: date-time }
+        roundDurationHours: { type: integer, example: 24 }
+        photoViewSeconds: { type: integer, example: 120 }
+
+    CreateGameRequest:
+      type: object
+      properties:
+        totalRounds: { type: integer, minimum: 1, maximum: 10, default: 5 }
+        maxPlayers: { type: integer, minimum: 2, maximum: 16, default: 8 }
+        roundDurationHours:
+          { type: integer, minimum: 1, maximum: 336, default: 24 }
+        photoViewSeconds:
+          { type: integer, minimum: 5, maximum: 1800, default: 120 }
+
+    JoinGameRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z0-9]{6}$"
+          example: "ABC123"
+
+    # ── Players & Teams ───────────────────
+    Player:
+      type: object
+      required: [id, username, isHost, joinedAt]
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+        teamId: { type: string, format: uuid, nullable: true }
+        isHost: { type: boolean }
+        joinedAt: { type: string, format: date-time }
+
+    Team:
+      type: object
+      required: [id, name, players, score]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, example: "Team A" }
+        players:
+          type: array
+          items: { $ref: "#/components/schemas/Player" }
+        score: { type: integer, example: 0 }
+
+    # ── Round ─────────────────────────────
+    RoundPhase:
+      type: string
+      enum: [upload, guess]
+
+    Round:
+      type: object
+      required: [roundNumber, phase, deadline]
+      properties:
+        roundNumber: { type: integer, example: 1 }
+        phase: { $ref: "#/components/schemas/RoundPhase" }
+        deadline: { type: string, format: date-time }
+
+    UploadStatus:
+      type: object
+      required: [teamA, teamB]
+      properties:
+        teamA: { type: string, enum: [uploaded, pending] }
+        teamB: { type: string, enum: [uploaded, pending] }
+
+    # ── Guess ─────────────────────────────
+    GuessRequest:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat:
+          {
+            type: number,
+            format: double,
+            minimum: -90,
+            maximum: 90,
+            example: 48.137154,
+          }
+        lng:
+          {
+            type: number,
+            format: double,
+            minimum: -180,
+            maximum: 180,
+            example: 11.576124,
+          }
+
+    Guess:
+      type: object
+      required: [id, playerId, lat, lng, submittedAt]
+      properties:
+        id: { type: string, format: uuid }
+        playerId: { type: string, format: uuid }
+        lat: { type: number, format: double, example: 48.137154 }
+        lng: { type: number, format: double, example: 11.576124 }
+        submittedAt: { type: string, format: date-time }
+
+    # ── Results ───────────────────────────
+    GuessResult:
+      type: object
+      required: [playerId, lat, lng, distanceMeters, points]
+      properties:
+        playerId: { type: string, format: uuid }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+        distanceMeters: { type: number, format: double, example: 1234.5 }
+        points: { type: integer, example: 850 }
+
+    RoundResult:
+      type: object
+      required: [roundNumber, actualLat, actualLng, guesses]
+      properties:
+        roundNumber: { type: integer, example: 1 }
+        actualLat: { type: number, format: double, example: 48.137154 }
+        actualLng: { type: number, format: double, example: 11.576124 }
+        guesses:
+          type: array
+          items: { $ref: "#/components/schemas/GuessResult" }
+
+    LeaderboardEntry:
+      type: object
+      required: [teamId, teamName, score]
+      properties:
+        teamId: { type: string, format: uuid }
+        teamName: { type: string, example: "Team A" }
+        score: { type: integer, example: 3400 }
+
+    GameResult:
+      type: object
+      required: [winnerTeamId, leaderboard]
+      properties:
+        winnerTeamId: { type: string, format: uuid }
+        leaderboard:
+          type: array
+          items: { $ref: "#/components/schemas/LeaderboardEntry" }
