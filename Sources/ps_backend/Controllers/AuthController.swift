@@ -1,12 +1,15 @@
 import OpenAPIRuntime
+import JWT
 
 extension APIHandler {
 
+    //why all _ input : etc
     func register(_ input: Operations.register.Input) async throws -> Operations.register.Output {
         .undocumented(statusCode: 501, .init())
     }
 
-    func login(_ input: Operations.login.Input) async throws -> Operations.login.Output {
+    // Content Structs for return needed? mby Operations.login.Output??
+    func login(req: Request) async throws -> Operations.login.Output {
         .undocumented(statusCode: 501, .init())
     }
 
@@ -14,3 +17,15 @@ extension APIHandler {
         .undocumented(statusCode: 501, .init())
     }
 }
+
+/*
+
+Payload needed -> in Model?
+
+struct AuthPayload: JWTPayload {
+
+    //What information needs to be transmitted?
+
+}
+
+*/
