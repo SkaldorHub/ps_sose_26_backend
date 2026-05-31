@@ -15,7 +15,7 @@ final class Team: Model, Content, @unchecked Sendable {
 
     // The games this team is participating in
     @Children(for: \.$team)
-    var participates: [Participates]
+    var participates: [Participate]
 
     // The round results associated with this team
     @Children(for: \.$team) 
