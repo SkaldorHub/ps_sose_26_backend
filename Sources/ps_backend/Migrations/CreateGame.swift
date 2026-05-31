@@ -7,7 +7,7 @@ struct CreateGame: AsyncMigration {
     func prepare(on database: Database) async throws {
         // Creates an enum type for the "game_state" field in the "game" table
        let gameState = try await database.enum("game_state")
-            .case(Game.State.waiting.rawValue)
+            .case(Game.State.lobby.rawValue)
             .case(Game.State.running.rawValue)
             .case(Game.State.gameOver.rawValue)
             .create()
