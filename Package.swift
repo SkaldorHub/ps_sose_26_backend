@@ -14,6 +14,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-openapi-runtime.git", from: "1.0.0"),
         .package(url: "https://github.com/swift-server/swift-openapi-vapor.git", from: "1.0.0"),
+        .package(url: "https://github.com/soto-project/soto.git", from: "6.0.0"),
     ],
     targets: [
         .executableTarget(
@@ -26,6 +27,7 @@ let package = Package(
                 .product(name: "NIOPosix", package: "swift-nio"),
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
                 .product(name: "OpenAPIVapor", package: "swift-openapi-vapor"),
+                .product(name: "SotoS3", package: "soto"),
             ],
             swiftSettings: swiftSettings,
             plugins: [
