@@ -20,10 +20,6 @@ final class User: Model, Content, @unchecked Sendable {
     @Children(for: \.$host)
     var games: [Game]
 
-    // Relationship to the teams the user is part of
-    @Children(for: \.$user)
-    var teams: [Team]
-
     // Relationship to the guesses made by the user
     @Children(for: \.$user)
     var guesses: [Guess]
@@ -32,11 +28,15 @@ final class User: Model, Content, @unchecked Sendable {
     @Children(for: \.$photographer)
     var photos: [Photo]
 
+    // Relationship to the team members associated with the user
+    @Children(for: \.$user)
+    var teamMembers: [TeamMember]
+
     // Initializer for the User model
     init() {}
 
-    // Initializer to create a new User instance with the provided username and password hash
-    init(id: UUID? = nil, username: String, passwordHash: String) {
+    // Initializer for the User model with parameters for id, username, and passwordHash
+   init(id: UUID? = nil, username: String, passwordHash: String) {
         self.id = id
         self.username = username
         self.passwordHash = passwordHash
