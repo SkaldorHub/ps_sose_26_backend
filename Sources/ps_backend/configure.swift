@@ -35,7 +35,13 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateUser())
     app.migrations.add(CreateTeam())
     app.migrations.add(CreateGame())
+    app.migrations.add(CreateRound())
     app.migrations.add(CreateParticipates())
+    app.migrations.add(CreatePhoto())
+    app.migrations.add(CreateGuess())
+    app.migrations.add(CreateRoundResult())
+   
+    
     // register routes
     try routes(app)
 }

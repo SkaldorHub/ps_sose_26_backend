@@ -1,7 +1,7 @@
 import Fluent   
 
-// Migration to create the "Team" table in the database, which represents teams participating in games
-struct CreateTeam: Migration {  
+/// Migration to create the "Team" table in the database, which represents teams participating in games
+struct CreateTeam: AsyncMigration {  
     // Creates the "Team" table with the specified fields and relationships
     func prepare(on database: Database) async throws {
         try await database.schema(Team.schema)
