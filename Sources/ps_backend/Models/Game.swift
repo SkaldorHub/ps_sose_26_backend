@@ -6,8 +6,11 @@ final class Game: Model, Content, @unchecked Sendable {
 
     /// Enumeration representing the state of the game
     enum State: String, Codable {
-        case waiting
+        // The game is in the lobby, waiting for players to join
+        case lobby
+        // The game is currently running
         case running
+        // The game has finished
         case gameOver
     }
 
@@ -35,11 +38,15 @@ final class Game: Model, Content, @unchecked Sendable {
 
     // The teams participating in this game
     @Children(for: \.$game)
-    var participates: [Participates]
+    var participates: [Participate]
 
     // The rounds associated with this game
     @Children(for: \.$game)
     var rounds: [Round]
+
+    // The team members associated with this game
+    @Children(for: \.$game)
+    var teamMembers: [TeamMember]
 
     // Initializer for the Game model
     init() {}
