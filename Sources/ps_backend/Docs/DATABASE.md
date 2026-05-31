@@ -1,7 +1,7 @@
 # Datenbankdokumentation
 
 ## Schema
-![Database Schema](database_schema_geoguessr.png)
+![Database Schema](database_schema_geogame.png)
 
 ## Tabellen
 | Tabelle | Beschreibung |
