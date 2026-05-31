@@ -2,7 +2,15 @@ import Fluent
 import Vapor
 
 /// This model represents a team member in the database, including the association between a user and a team.
-final class TeamMember: Model, Content, @unchecked Sendable {   
+final class TeamMember: Model, Content, @unchecked Sendable {  
+    
+    // A collection of field keys for the TeamMember model
+    struct FieldKeys {
+        static var teamID: FieldKey { "team_id" }
+        static var userID: FieldKey { "user_id" }
+        static var gameID: FieldKey { "game_id" }
+    }
+
     static let schema = "team_members"
 
     // Unique identifier for each team member entry
@@ -10,15 +18,15 @@ final class TeamMember: Model, Content, @unchecked Sendable {
     var id: UUID?
 
     // The team this member belongs to
-    @Parent(key: "team_id")
+    @Parent(key: TeamMember.FieldKeys.teamID)
     var team: Team
 
     // The user associated with this team member entry
-    @Parent(key: "user_id")
+    @Parent(key: TeamMember.FieldKeys.userID)
     var user: User
 
     // The game associated with this team member entry
-    @Parent(key: "game_id")
+    @Parent(key: TeamMember.FieldKeys.gameID)
     var game: Game
 
     // Initializer for the TeamMember model

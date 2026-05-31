@@ -7,11 +7,11 @@ struct CreateRoundResult: AsyncMigration {
     func prepare(on database: Database) async throws {
         try await database.schema(RoundResult.schema)
             .id()
-            .field("round_id", .uuid, .required, .references(Round.schema, "id", onDelete: .restrict))
-            .field("team_id", .uuid, .required, .references(Team.schema, "id", onDelete: .restrict))
+            .field(RoundResult.FieldKeys.roundID, .uuid, .required, .references(Round.schema, "id", onDelete: .restrict))
+            .field(RoundResult.FieldKeys.teamID, .uuid, .required, .references(Team.schema, "id", onDelete: .restrict))
             // combination of round_id and team_id must be unique to prevent duplicate entries for the same team in the same round
-            .unique(on: "round_id", "team_id") 
-            .field("team_points", .int, .required)
+            .unique(on: RoundResult.FieldKeys.roundID, RoundResult.FieldKeys.teamID)
+            .field(RoundResult.FieldKeys.teamPoints, .int, .required)
             .create()
     }
 

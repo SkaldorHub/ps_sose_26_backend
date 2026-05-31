@@ -3,33 +3,45 @@ import Vapor
 
 /// This model represents a photo uploaded by a team during the uploading phase of a round, including the URL of the photo and its association with a specific round and team.
 final class Photo: Model, Content, @unchecked Sendable {
+
+    // A collection of field keys for the Photo model
+    struct FieldKeys {
+        static var roundID: FieldKey { "round_id" }
+        static var photographerID: FieldKey { "photographer_id" }
+        static var latitude: FieldKey { "latitude" }
+        static var longitude: FieldKey { "longitude" }
+        static var hint: FieldKey { "hint" }
+        static var photoURL: FieldKey { "photo_url" }
+    }
+
     static let schema = "photos"
+
     // Unique identifier for each photo
     @ID(key: .id)
     var id: UUID?
 
     // The round associated with the photo
-    @Parent(key: "round_id")
+    @Parent(key: Photo.FieldKeys.roundID)
     var round: Round
 
     // The team that uploaded the photo
-    @Parent(key: "photographer_id")
+    @Parent(key: Photo.FieldKeys.photographerID)
     var photographer: User
 
     // latitude of the location where the photo was taken
-    @Field(key: "latitude")
+    @Field(key: Photo.FieldKeys.latitude)
     var latitude: Double
 
     // longitude of the location where the photo was taken
-    @Field(key: "longitude")
+    @Field(key: Photo.FieldKeys.longitude)
     var longitude: Double
 
     // optional hint for the photo
-    @OptionalField(key: "hint")
+    @OptionalField(key: Photo.FieldKeys.hint)
     var hint: String?
 
     // URL of the uploaded photo
-    @Field(key: "photo_url")
+    @Field(key: Photo.FieldKeys.photoURL)
     var photoURL: String
 
     // Initializers for the Photo model

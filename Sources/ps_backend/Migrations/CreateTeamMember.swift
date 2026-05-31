@@ -7,11 +7,11 @@ struct CreateTeamMember: AsyncMigration {
     func prepare(on database: Database) async throws {
         try await database.schema(TeamMember.schema)
             .id()
-            .field("team_id", .uuid, .required, .references(Team.schema, "id", onDelete: .restrict))
-            .field("user_id", .uuid, .required, .references(User.schema, "id", onDelete: .restrict))
-            .field("game_id", .uuid, .required, .references(Game.schema, "id", onDelete: .restrict))
+            .field(TeamMember.FieldKeys.teamID, .uuid, .required, .references(Team.schema, "id", onDelete: .restrict))
+            .field(TeamMember.FieldKeys.userID, .uuid, .required, .references(User.schema, "id", onDelete: .restrict))
+            .field(TeamMember.FieldKeys.gameID, .uuid, .required, .references(Game.schema, "id", onDelete: .restrict))
             // a user can only be a member of one team per game
-            .unique(on: "user_id", "game_id")
+            .unique(on: TeamMember.FieldKeys.userID, TeamMember.FieldKeys.gameID)
             .create()
     }
 

@@ -4,6 +4,14 @@ import Vapor
 /// This model represents a game in the database, including the host, state, and associated rounds and participations.
 final class Game: Model, Content, @unchecked Sendable {
 
+    // A collection of field keys for the Game model
+    struct FieldKeys {
+        static var hostID: FieldKey { "host_id" }
+        static var state: FieldKey { "state" }
+        static var startedAt: FieldKey { "started_at" }
+        static var finishedAt: FieldKey { "finished_at" }
+    }
+
     /// Enumeration representing the state of the game
     enum State: String, Codable {
         // The game is in the lobby, waiting for players to join
@@ -21,19 +29,19 @@ final class Game: Model, Content, @unchecked Sendable {
     var id: UUID?
 
     // The user who is hosting the game
-    @Parent(key: "host_id")
+    @Parent(key: FieldKeys.hostID)
     var host: User
 
     // The current state of the game
-    @Enum(key: "state")
+    @Enum(key: FieldKeys.state)
     var state: Game.State
 
     // The date and time the game started
-    @OptionalField(key: "started_at")
+    @OptionalField(key: FieldKeys.startedAt)
     var startedAt: Date?
 
     // The date and time the game finished
-    @OptionalField(key: "finished_at")
+    @OptionalField(key: FieldKeys.finishedAt)
     var finishedAt: Date?
 
     // The teams participating in this game
@@ -55,6 +63,6 @@ final class Game: Model, Content, @unchecked Sendable {
     init(id: UUID? = nil, state: Game.State, hostID: UUID) {
         self.id = id
         self.state = state
-        self.$host.id = hostID 
+        self.$host.id = hostID
     }
 }

@@ -7,14 +7,14 @@ struct CreateGuess: AsyncMigration {
     func prepare(on database: Database) async throws {
         try await database.schema(Guess.schema)
             .id()
-            .field("user_id", .uuid, .required, .references(User.schema, "id", onDelete: .restrict))
-            .field("round_id", .uuid, .required, .references(Round.schema, "id", onDelete: .restrict))
-            .field("latitude", .double, .required)
-            .field("longitude", .double, .required)
+            .field(Guess.FieldKeys.userID, .uuid, .required, .references(User.schema, "id", onDelete: .restrict))
+            .field(Guess.FieldKeys.roundID, .uuid, .required, .references(Round.schema, "id", onDelete: .restrict))
+            .field(Guess.FieldKeys.latitude, .double, .required)
+            .field(Guess.FieldKeys.longitude, .double, .required)
             // distance is calculated after the guess is made
-            .field("distance", .double)
-            .field("viewing_deadline", .datetime, .required)
-            .field("guess_deadline", .datetime, .required)
+            .field(Guess.FieldKeys.distance, .double)
+            .field(Guess.FieldKeys.viewingDeadline, .datetime, .required)
+            .field(Guess.FieldKeys.guessDeadline, .datetime, .required)
             .create()
     }
 

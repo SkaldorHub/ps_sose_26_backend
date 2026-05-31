@@ -3,6 +3,14 @@ import Vapor
 
 /// This model represents a participation entry linking a team to a game, including whether the team won the game.
 final class Participate: Model, Content, @unchecked Sendable {
+
+    // A collection of field keys for the Participate model
+    struct FieldKeys {
+        static var gameID: FieldKey { "game_id" }
+        static var teamID: FieldKey { "team_id" }
+        static var isWinner: FieldKey { "is_winner" }
+    }
+
     static let schema = "participates"
 
     // Unique identifier for each participation entry
@@ -10,15 +18,15 @@ final class Participate: Model, Content, @unchecked Sendable {
     var id: UUID?
 
     // The game this participation entry is associated with
-    @Parent(key: "game_id")
+    @Parent(key: Participate.FieldKeys.gameID)
     var game: Game
 
     // The team participating in the game
-    @Parent(key: "team_id")
+    @Parent(key: Participate.FieldKeys.teamID)
     var team: Team
 
     // Whether the team won the game
-    @Field(key: "is_winner")
+    @Field(key: Participate.FieldKeys.isWinner)
     var isWinner: Bool
 
     // Initializer for the Participate model

@@ -7,13 +7,13 @@ struct CreatePhoto: AsyncMigration {
     func prepare(on database: Database) async throws {
         try await database.schema(Photo.schema)
             .id()
-            .field("photographer_id", .uuid, .required, .references(User.schema, "id", onDelete: .restrict))
-            .field("round_id", .uuid, .required, .references(Round.schema, "id", onDelete: .restrict))
-            .field("photo_url", .string, .required)
-            .field("latitude", .double, .required)
-            .field("longitude", .double, .required)
+            .field(Photo.FieldKeys.photographerID, .uuid, .required, .references(User.schema, "id", onDelete: .restrict))
+            .field(Photo.FieldKeys.roundID, .uuid, .required, .references(Round.schema, "id", onDelete: .restrict))
+            .field(Photo.FieldKeys.photoURL, .string, .required)
+            .field(Photo.FieldKeys.latitude, .double, .required)
+            .field(Photo.FieldKeys.longitude, .double, .required)
             // hint is optional, the photographer may choose not to provide one
-            .field("hint", .string)
+            .field(Photo.FieldKeys.hint, .string)
             .create()
     }
 
