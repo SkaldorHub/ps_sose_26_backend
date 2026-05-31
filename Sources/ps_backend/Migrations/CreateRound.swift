@@ -5,7 +5,9 @@ struct CreateRound: AsyncMigration {
 
     // Creates the "round" table with the specified fields and relationships
     func prepare(on database: Database) async throws {
-       let currentPhase = try await database.enum("current_phase")
+        
+        // Creates an enum type for the "current_phase" field in the "round" table
+       let currentPhase = try await database.enum(Round.FieldKeys.currentPhase)
             .case(Round.CurrentPhase.uploading.rawValue)
             .case(Round.CurrentPhase.viewingPhotos.rawValue)
             .case(Round.CurrentPhase.guessing.rawValue)
@@ -15,10 +17,10 @@ struct CreateRound: AsyncMigration {
 
         try await database.schema(Round.schema)
             .id()
-            .field("game_id", .uuid, .required, .references(Game.schema, "id", onDelete: .restrict))
-            .field("round_number", .int, .required)
-            .field("current_phase", currentPhase, .required)
-            .field("deadline", .datetime)
+            .field(Round.FieldKeys.gameID, .uuid, .required, .references(Game.schema, "id", onDelete: .restrict))
+            .field(Round.FieldKeys.roundNumber, .int, .required)
+            .field(Round.FieldKeys.currentPhase, currentPhase, .required)
+            .field(Round.FieldKeys.deadline, .datetime)
             .create()
     }
 

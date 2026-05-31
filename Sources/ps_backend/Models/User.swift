@@ -3,17 +3,25 @@ import Vapor
 
 /// Model representing a user in the database
 final class User: Model, Content, @unchecked Sendable {
+
+    // A collection of field keys for the User model
+    struct FieldKeys {
+        static var username: FieldKey { "username" }
+        static var passwordHash: FieldKey { "password_hash" }
+    }
+
     static let schema = "users"
+
     // Unique identifier for each user
     @ID(key: .id)
     var id: UUID?
 
     // Username of the user
-    @Field(key: "username")
+    @Field(key: User.FieldKeys.username)
     var username: String
 
     // Password hash for the user's password
-    @Field(key: "password_hash")
+    @Field(key: User.FieldKeys.passwordHash)
     var passwordHash: String
 
     // Relationship to the games hosted by the user

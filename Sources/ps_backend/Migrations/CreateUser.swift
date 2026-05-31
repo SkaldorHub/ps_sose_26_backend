@@ -7,8 +7,8 @@ struct CreateUser: AsyncMigration {
     func prepare(on database: Database) async throws {
         try await database.schema(User.schema)
             .id()
-            .field("username", .string, .required)
-            .field("passwordHash", .string, .required)
+            .field(User.FieldKeys.username, .string, .required)
+            .field(User.FieldKeys.passwordHash, .string, .required)
             .create()
     }
 

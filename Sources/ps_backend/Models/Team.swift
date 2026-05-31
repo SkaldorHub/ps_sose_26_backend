@@ -3,6 +3,12 @@ import Vapor
 
 /// This model represents a team in the database, including the team name and its association with a user and game participations.
 final class Team: Model, Content, @unchecked Sendable {
+
+    // A collection of field keys for the Team model
+    struct FieldKeys {
+        static var name: FieldKey { "name" }
+    }
+
     static let schema = "teams"
 
     // Unique identifier for each team
@@ -10,7 +16,7 @@ final class Team: Model, Content, @unchecked Sendable {
     var id: UUID?
 
     // The name of the team
-    @Field(key: "name")
+    @Field(key: Team.FieldKeys.name)
     var name: String
 
     // The games this team is participating in
