@@ -6,8 +6,7 @@ struct CreateTeam: AsyncMigration {
     func prepare(on database: Database) async throws {
         try await database.schema(Team.schema)
             .id()
-            .field("name", .string)
-            .field("user_id", .uuid, .required, .references(User.schema, "id", onDelete: .restrict))
+            .field("name", .string, .required)
             .create()
     }
 
