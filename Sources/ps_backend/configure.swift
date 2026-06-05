@@ -45,6 +45,7 @@ public func configure(_ app: Application) async throws {
    
     
     await app.jwt.keys.add(hmac: "someSecret", digestAlgorithm: .sha256)
+    app.passwords.use(.bcrypt)
 
     // register routes
     try routes(app)
