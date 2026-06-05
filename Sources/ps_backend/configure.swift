@@ -31,6 +31,18 @@ public func configure(_ app: Application) async throws {
     )
     app.middleware.use(CORSMiddleware(configuration: corsConfiguration), at: .beginning)
 
+    // add migrations
+    app.migrations.add(CreateUser())
+    app.migrations.add(CreateTeam())
+    app.migrations.add(CreateGame())
+    app.migrations.add(CreateTeamMember())
+    app.migrations.add(CreateRound())
+    app.migrations.add(CreateParticipate())
+    app.migrations.add(CreatePhoto())
+    app.migrations.add(CreateGuess())
+    app.migrations.add(CreateRoundResult())
+   
+    
     // register routes
     try routes(app)
 }
