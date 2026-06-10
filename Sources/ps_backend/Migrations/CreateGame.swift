@@ -17,9 +17,16 @@ struct CreateGame: AsyncMigration {
         try await database.schema(Game.schema)
             .id()
             .field(Game.FieldKeys.hostID, .uuid, .required, .references(User.schema, "id", onDelete: .restrict))
+            .field(Game.FieldKeys.state, gameState, .required)
+            .field(Game.FieldKeys.code, .string, .required)
+            .field(Game.FieldKeys.totalRounds, .int, .required)
+            .field(Game.FieldKeys.maxPlayers, .int, .required)
+            .field(Game.FieldKeys.roundDurationHours, .int, .required)
+            .field(Game.FieldKeys.photoViewSeconds, .int, .required)
             .field(Game.FieldKeys.startedAt, .datetime)
             .field(Game.FieldKeys.finishedAt, .datetime)
-            .field(Game.FieldKeys.state, gameState, .required)
+            .field("created_at", .datetime)
+            .unique(on: Game.FieldKeys.code)
             .create()
     }
 

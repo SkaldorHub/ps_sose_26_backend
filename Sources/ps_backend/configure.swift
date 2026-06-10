@@ -41,8 +41,7 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreatePhoto())
     app.migrations.add(CreateGuess())
     app.migrations.add(CreateRoundResult())
-   
-    
+
     // register routes
     try routes(app)
 }
