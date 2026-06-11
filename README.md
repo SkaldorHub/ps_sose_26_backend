@@ -72,3 +72,10 @@ backend/
 ├── docker-compose.yml # Container Stack (MinIO, PostgreSQL, Backend)
 └── Dockerfile # Vapor Standard Dockerfile
 ```
+
+## Teststrategie
+
+Für den Backend Services sind E2E-Tests geplant, welche definierte User Gameflows durchgehen.
+
+- Spiel starten, spielen und erfolgreich beenden
+- 4 User spielen (müssen sich neu registrieren)

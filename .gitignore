@@ -10,6 +10,10 @@ db.sqlite
 .env.*
 !.env.example
 default.profraw
+*.d
+*.dia
+*.swiftdeps
+*.swiftmodule
 .claude
 .idea
 CLAUDE.md
