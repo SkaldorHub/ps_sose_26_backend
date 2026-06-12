@@ -25,6 +25,11 @@ extension APIHandler {
             throw Abort(.notFound)
         }
 
+        // sicherstellen, dass ein gültiges Ergebnis vorhanden ist 
+        guard round.currentPhase == .roundOver else {
+            throw Abort(.notFound)
+        }
+
         // Foto der aktuellen Runde holen, um den tatsächlichen Standort zu bekommen
         let photo = try await Photo.query(on: req.db)
             .filter(\.$round.$id == round.requireID())
@@ -33,6 +38,8 @@ extension APIHandler {
         guard let photo = photo else {
             throw Abort(.notFound)
         }
+
+        
 
         // Alle Guesses der aktuellen Runde holen
         let guesses = try await Guess.query(on: req.db)
@@ -48,18 +55,13 @@ extension APIHandler {
                 points: guess.points
             )
         }
-
-        // sicherstellen, dass ein gültiges Ergebnis vorhanden ist 
-        if round.currentPhase == .roundOver {
-            return .ok(.init(body: .json(.init(
-                roundNumber: round.roundNumber,
-                actualLat: photo.latitude,
-                actualLng: photo.longitude,
-                guesses: guessResults
-            ))))
-        } else {
-            throw Abort(.notFound) 
-        }
+        
+        return .ok(.init(body: .json(.init(
+            roundNumber: round.roundNumber,
+            actualLat: photo.latitude,
+            actualLng: photo.longitude,
+            guesses: guessResults
+        ))))
     }
 
     /// Hilfsmethode zum berechnen von den Scores aller Teams eines Spiels
