@@ -7,7 +7,7 @@ struct CreateRound: AsyncMigration {
     func prepare(on database: Database) async throws {
         
         // Creates an enum type for the "current_phase" field in the "round" table
-       let currentPhase = try await database.enum(Round.FieldKeys.currentPhase)
+       let currentPhase = try await database.enum("current_phase")
             .case(Round.CurrentPhase.uploading.rawValue)
             .case(Round.CurrentPhase.viewingPhotos.rawValue)
             .case(Round.CurrentPhase.guessing.rawValue)

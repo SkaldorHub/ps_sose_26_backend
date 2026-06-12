@@ -6,7 +6,7 @@ info:
 servers:
   - url: http://localhost:8080
     description: Local Development Server
-  - url: https://pssose2026backend.f4.htw-berlin.de
+  - url: https://pssose2026backend.f4.htw-berlin.de:8080
     description: Production Server
 
 tags:

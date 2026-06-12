@@ -11,6 +11,7 @@ final class Guess: Model, Content, @unchecked Sendable {
         static var latitude: FieldKey { "latitude" }
         static var longitude: FieldKey { "longitude" }
         static var distance: FieldKey { "distance" }
+        static var points: FieldKey { "points" }
         static var viewingDeadline: FieldKey { "viewing_deadline" }
         static var guessDeadline: FieldKey { "guess_deadline" }
     }
@@ -37,11 +38,15 @@ final class Guess: Model, Content, @unchecked Sendable {
     @Field(key: Guess.FieldKeys.longitude)
     var longitude: Double
 
+    // points associated with the guess, calculated after the round ends
+    @OptionalField(key: Guess.FieldKeys.points)
+    var points: Int?
+
     // distance from the actual location of the photo to the guessed location
     @OptionalField(key: Guess.FieldKeys.distance)
     var distance: Double?
 
-    // deadline for viewing the guess
+    // deadline for viewing the photo
     @Field(key: Guess.FieldKeys.viewingDeadline)
     var viewingDeadline: Date
 
@@ -52,14 +57,15 @@ final class Guess: Model, Content, @unchecked Sendable {
     // Initializer for the Guess model
     init() { }
     
-    // Initializer for the Guess model with parameters for id, userId, roundId, latitude, longitude, distance, and viewingDeadline
-    init(id: UUID? = nil, userId: UUID, roundId: UUID, latitude: Double, longitude: Double, distance: Double? = nil, viewingDeadline: Date, guessDeadline: Date) {
+    // Initializer for the Guess model with parameters for id, userId, roundId, latitude, longitude, distance, viewingDeadline and guessDeadline
+    init(id: UUID? = nil, userId: UUID, roundId: UUID, latitude: Double, longitude: Double, distance: Double? = nil, points: Int? = nil, viewingDeadline: Date, guessDeadline: Date) {
         self.id = id
         self.$user.id = userId
         self.$round.id = roundId
         self.latitude = latitude
         self.longitude = longitude
         self.distance = distance
+        self.points = points
         self.viewingDeadline = viewingDeadline
         self.guessDeadline = guessDeadline
     }

@@ -7,7 +7,7 @@ struct CreateGame: AsyncMigration {
     func prepare(on database: Database) async throws {
         
         // Creates an enum type for the "game_state" field in the "game" table
-       let gameState = try await database.enum(Game.FieldKeys.state)
+       let gameState = try await database.enum("state")
             .case(Game.State.lobby.rawValue)
             .case(Game.State.running.rawValue)
             .case(Game.State.gameOver.rawValue)
@@ -25,7 +25,7 @@ struct CreateGame: AsyncMigration {
 
     // Deletes the "game" table if the migration is reverted
     func revert(on database: Database) async throws {
-        try await database.enum(Game.FieldKeys.state).delete()
+        try await database.enum("state").delete()
         try await database.schema(Game.schema).delete()
     }
 }

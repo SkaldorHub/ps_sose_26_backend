@@ -11,8 +11,9 @@ struct CreateGuess: AsyncMigration {
             .field(Guess.FieldKeys.roundID, .uuid, .required, .references(Round.schema, "id", onDelete: .restrict))
             .field(Guess.FieldKeys.latitude, .double, .required)
             .field(Guess.FieldKeys.longitude, .double, .required)
-            // distance is calculated after the guess is made
+            // distance and points are calculated after the guess is made
             .field(Guess.FieldKeys.distance, .double)
+            .field(Guess.FieldKeys.points, .int)
             .field(Guess.FieldKeys.viewingDeadline, .datetime, .required)
             .field(Guess.FieldKeys.guessDeadline, .datetime, .required)
             .create()
