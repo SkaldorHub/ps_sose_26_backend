@@ -3,5 +3,5 @@ import OpenAPIVapor
 
 func routes(_ app: Application) throws {
     let transport = VaporTransport(routesBuilder: app)
-    try APIHandler().registerHandlers(on: transport)
+    try APIHandler(app: app).registerHandlers(on: transport)
 }

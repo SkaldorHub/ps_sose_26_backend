@@ -1,3 +1,6 @@
 import OpenAPIRuntime
+import Vapor
 
-struct APIHandler: APIProtocol {}
+struct APIHandler: APIProtocol {
+    let app: Application
+}
