@@ -280,11 +280,19 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [photo]
+              required: [photo, latitude, longitude]
               properties:
                 photo:
                   type: string
                   format: binary
+                latitude:
+                  type: number
+                  format: double
+                longitude:
+                  type: number
+                  format: double
+                hint:
+                  type: string  
       responses:
         "201": { description: Photo uploaded successfully }
         "401":
@@ -309,11 +317,19 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [photo]
+              required: [photo, latitude, longitude]
               properties:
                 photo:
                   type: string
                   format: binary
+                latitude:
+                  type: number
+                  format: double
+                longitude:
+                  type: number
+                  format: double
+                hint:
+                  type: string
       responses:
         "200": { description: Photo replaced successfully }
         "401":
@@ -632,6 +648,7 @@ components:
         score: { type: integer, example: 0 }
 
     # ── Round ─────────────────────────────
+    
     RoundPhase:
       type: string
       enum: [upload, guess]

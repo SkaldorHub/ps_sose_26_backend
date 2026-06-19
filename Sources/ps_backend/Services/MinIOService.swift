@@ -40,6 +40,16 @@ struct MinIOService {
         return "\(endpoint)/\(bucket)/\(key)"
     }
 
+    func delete(key: String) async throws {
+        let request = S3.DeleteObjectRequest(
+            bucket: bucket,
+            key: key
+        )
+        _ = try await s3.deleteObject(request)
+    }
+
+    
+
     func shutdown() throws {
         try client.syncShutdown()
     }
