@@ -14,11 +14,9 @@ final class Round: Model, Content, @unchecked Sendable {
 
     /// Enumeration representing the current phase of the round
     enum CurrentPhase: String, Codable {
-        case uploading
-        case viewingPhotos
-        case guessing
-        case calculatingResults
-        case roundOver
+        case upload
+        case guess
+        case calculateResults
     }
 
     static let schema = "rounds"

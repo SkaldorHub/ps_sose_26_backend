@@ -10,6 +10,7 @@ final class Game: Model, Content, @unchecked Sendable {
         static var state: FieldKey { "state" }
         static var startedAt: FieldKey { "started_at" }
         static var finishedAt: FieldKey { "finished_at" }
+        static var name: FieldKey { "name" }
     }
 
     /// Enumeration representing the state of the game
@@ -27,6 +28,10 @@ final class Game: Model, Content, @unchecked Sendable {
     // Unique identifier for the game
     @ID(key: .id)
     var id: UUID?
+
+    // name of the game
+    @Field(key: Game.FieldKeys.name)
+    var name: String
 
     // The user who is hosting the game
     @Parent(key: FieldKeys.hostID)
@@ -58,11 +63,12 @@ final class Game: Model, Content, @unchecked Sendable {
 
     // Initializer for the Game model
     init() {}
-    
+
     // Initializer for the Game model with parameters for id, state, and hostID
-    init(id: UUID? = nil, state: Game.State, hostID: UUID) {
+    init(id: UUID? = nil, name: String, state: Game.State, hostID: UUID) {
         self.id = id
         self.state = state
         self.$host.id = hostID
+        self.name = name
     }
 }
