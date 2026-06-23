@@ -41,8 +41,12 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreatePhoto())
     app.migrations.add(CreateGuess())
     app.migrations.add(CreateRoundResult())
+
+    // add queues
+    app.queues.schedule(PhaseScheduler()).everyMinute()
    
     
+    try app.queues.startScheduledJobs()
     // register routes
     try routes(app)
 }
