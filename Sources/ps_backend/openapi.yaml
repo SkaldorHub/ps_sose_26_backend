@@ -634,7 +634,7 @@ components:
     # ── Round ─────────────────────────────
     RoundPhase:
       type: string
-      enum: [upload, guess]
+      enum: [upload, guess, calculateResults]
 
     Round:
       type: object

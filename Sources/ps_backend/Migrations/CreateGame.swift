@@ -20,6 +20,7 @@ struct CreateGame: AsyncMigration {
             .field(Game.FieldKeys.startedAt, .datetime)
             .field(Game.FieldKeys.finishedAt, .datetime)
             .field(Game.FieldKeys.state, gameState, .required)
+            .field(Game.FieldKeys.name, .string, .required)
             .create()
     }
 

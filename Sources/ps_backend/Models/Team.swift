@@ -16,8 +16,8 @@ final class Team: Model, Content, @unchecked Sendable {
     var id: UUID?
 
     // The name of the team
-    @Field(key: Team.FieldKeys.name)
-    var name: String
+    @OptionalField(key: Team.FieldKeys.name)
+    var name: String?
 
     // The games this team is participating in
     @Children(for: \.$team)
@@ -35,7 +35,7 @@ final class Team: Model, Content, @unchecked Sendable {
     init() {}
     
     // Initializer for the Team model with parameters for id and name
-    init(id: UUID? = nil, name: String) {
+    init(id: UUID? = nil, name: String? = nil) {
         self.id = id
         self.name = name
     }
