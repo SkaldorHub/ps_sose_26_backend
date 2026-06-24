@@ -26,7 +26,7 @@ struct CreateGame: AsyncMigration {
     }
 
     func revert(on database: any Database) async throws {
-        try await database.enum("state").delete()
         try await database.schema(Game.schema).delete()
+        try await database.enum("state").delete()
     }
 }

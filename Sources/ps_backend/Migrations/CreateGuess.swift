@@ -12,6 +12,7 @@ struct CreateGuess: AsyncMigration {
             .field(Guess.FieldKeys.distance, .double)
             .field(Guess.FieldKeys.viewingDeadline, .datetime, .required)
             .field(Guess.FieldKeys.guessDeadline, .datetime, .required)
+            .unique(on: Guess.FieldKeys.userID, Guess.FieldKeys.roundID)
             .create()
     }
 

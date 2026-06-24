@@ -33,7 +33,8 @@ extension APIHandler {
             .filter(\.$game.$id == game.requireID())
             .sort(\.$roundNumber, .ascending)
             .all()
-        let currentRound = rounds.first(where: { $0.currentPhase != .calculateResults })?.roundNumber ?? 0
+        let currentRound = rounds.first(where: { $0.currentPhase != .calculateResults })?.roundNumber
+            ?? (game.state == .running ? game.totalRounds : 0)
         let status: Components.Schemas.GameStatus
         switch game.state {
         case .lobby:    status = .waiting
@@ -58,32 +59,26 @@ extension APIHandler {
 
     private func generateUniqueCode() async throws -> String {
         let chars = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-        var code: String
-        repeat {
-            code = String((0..<6).map { _ in chars.randomElement()! })
-        } while try await Game.query(on: db).filter(\.$code == code).count() > 0
-        return code
+        for _ in 0..<10 {
+            let code = String((0..<6).map { _ in chars.randomElement()! })
+            if try await Game.query(on: db).filter(\.$code == code).count() == 0 {
+                return code
+            }
+        }
+        throw Abort(.internalServerError)
     }
 
     // TODO: Replace with RoundService
-    private func createRounds(for game: Game) async throws {
+    private func createRounds(for game: Game, on db: any Database) async throws {
         let gameID = try game.requireID()
-        let start = Date()
+        let roundDuration = TimeInterval(game.roundDurationHours) * 3600
 
-        let participates = try await Participate.query(on: db).filter(\.$game.$id == gameID).all()
-        var membersByTeam: [UUID: [UUID]] = [:]
-        for p in participates {
-            let teamID = p.$team.id
-            let userIDs = try await TeamMember.query(on: db)
-                .filter(\.$game.$id == gameID)
-                .filter(\.$team.$id == teamID)
-                .all()
-                .map { $0.$user.id }
-            membersByTeam[teamID] = userIDs
-        }
+        let allMembers = try await TeamMember.query(on: db).filter(\.$game.$id == gameID).all()
+        let membersByTeam = Dictionary(grouping: allMembers, by: { $0.$team.id })
+            .mapValues { $0.map { $0.$user.id } }
 
         for n in 1...game.totalRounds {
-            let deadline = start.addingTimeInterval(Double(n) * Double(game.roundDurationHours) * 3600)
+            let deadline = n == 1 ? Date().addingTimeInterval(roundDuration) : nil
             let round = Round(currentPhase: .upload, gameID: gameID, roundNumber: n, deadline: deadline)
             try await round.save(on: db)
             let roundID = try round.requireID()
@@ -133,18 +128,26 @@ extension APIHandler {
             guard game.state == .lobby else { return .conflict(.init()) }
             let gameID = try game.requireID()
 
-            let allMembers = try await TeamMember.query(on: db).filter(\.$game.$id == gameID).all()
-            guard allMembers.count < game.maxPlayers else { return .conflict(.init()) }
-            guard !allMembers.contains(where: { $0.$user.id == userID }) else { return .conflict(.init()) }
+            enum JoinOutcome { case ok, conflict, internalError }
+            let outcome: JoinOutcome = try await db.transaction { db in
+                let allMembers = try await TeamMember.query(on: db).filter(\.$game.$id == gameID).all()
+                guard allMembers.count < game.maxPlayers else { return .conflict }
+                guard !allMembers.contains(where: { $0.$user.id == userID }) else { return .conflict }
 
-            let participates = try await Participate.query(on: db).filter(\.$game.$id == gameID).all()
-            let countByTeam = Dictionary(grouping: allMembers, by: { $0.$team.id }).mapValues { $0.count }
-            guard let targetTeamID = participates
-                .sorted(by: { (countByTeam[$0.$team.id] ?? 0) < (countByTeam[$1.$team.id] ?? 0) })
-                .first?.$team.id else { throw Abort(.internalServerError) }
+                let participates = try await Participate.query(on: db).filter(\.$game.$id == gameID).all()
+                let countByTeam = Dictionary(grouping: allMembers, by: { $0.$team.id }).mapValues { $0.count }
+                guard let targetTeamID = participates
+                    .sorted(by: { (countByTeam[$0.$team.id] ?? 0) < (countByTeam[$1.$team.id] ?? 0) })
+                    .first?.$team.id else { return .internalError }
 
-            try await TeamMember(teamID: targetTeamID, userID: userID, gameID: gameID).save(on: db)
-            return .ok(.init(body: .json(try await mapGame(game))))
+                try await TeamMember(teamID: targetTeamID, userID: userID, gameID: gameID).save(on: db)
+                return .ok
+            }
+            switch outcome {
+            case .conflict: return .conflict(.init())
+            case .internalError: throw Abort(.internalServerError)
+            case .ok: return .ok(.init(body: .json(try await mapGame(game))))
+            }
         }
     }
 
@@ -163,10 +166,12 @@ extension APIHandler {
         let playerCount = try await TeamMember.query(on: db).filter(\.$game.$id == gameID).count()
         guard playerCount >= 2 else { return .conflict(.init()) }
 
-        game.state = .running
-        game.startedAt = Date()
-        try await game.save(on: db)
-        try await createRounds(for: game)
+        try await db.transaction { db in
+            game.state = .running
+            game.startedAt = Date()
+            try await game.save(on: db)
+            try await self.createRounds(for: game, on: db)
+        }
 
         return .ok(.init(body: .json(try await mapGame(game))))
     }
@@ -177,21 +182,29 @@ extension APIHandler {
         let gameID = try game.requireID()
 
         guard game.state == .lobby else { return .conflict(.init()) }
-        guard let membership = try await TeamMember.query(on: db)
-            .filter(\.$game.$id == gameID)
-            .filter(\.$user.$id == userID)
-            .first() else { return .notFound(.init()) }
-        try await membership.delete(on: db)
 
-        if game.$host.id == userID {
-            if let next = try await TeamMember.query(on: db).filter(\.$game.$id == gameID).first() {
-                game.$host.id = next.$user.id
-                try await game.save(on: db)
-            } else {
-                try await game.delete(on: db)
+        enum LeaveOutcome { case ok, notFound }
+        let outcome: LeaveOutcome = try await db.transaction { db in
+            guard let membership = try await TeamMember.query(on: db)
+                .filter(\.$game.$id == gameID)
+                .filter(\.$user.$id == userID)
+                .first() else { return .notFound }
+            try await membership.delete(on: db)
+
+            if game.$host.id == userID {
+                if let next = try await TeamMember.query(on: db)
+                    .filter(\.$game.$id == gameID)
+                    .sort(\.$joinedAt, .ascending)
+                    .first() {
+                    game.$host.id = next.$user.id
+                    try await game.save(on: db)
+                } else {
+                    try await game.delete(on: db)
+                }
             }
+            return .ok
         }
-        return .noContent
+        return outcome == .notFound ? .notFound(.init()) : .noContent
     }
 
     func listPlayers(_ input: Operations.listPlayers.Input) async throws -> Operations.listPlayers.Output {
@@ -211,11 +224,12 @@ extension APIHandler {
         guard game.state == .lobby else { return .conflict(.init()) }
 
         let gameID = try game.requireID()
-        guard let playerUUID = UUID(uuidString: input.path.playerId),
-              let membership = try await TeamMember.query(on: db)
-                .filter(\.$game.$id == gameID)
-                .filter(\.$user.$id == playerUUID)
-                .first() else { return .notFound(.init()) }
+        guard let playerUUID = UUID(uuidString: input.path.playerId) else { return .notFound(.init()) }
+        guard playerUUID != userID else { return .forbidden(.init()) }
+        guard let membership = try await TeamMember.query(on: db)
+            .filter(\.$game.$id == gameID)
+            .filter(\.$user.$id == playerUUID)
+            .first() else { return .notFound(.init()) }
         try await membership.delete(on: db)
         return .noContent
     }
