@@ -123,7 +123,7 @@ paths:
         "404":
           description: Invalid code
         "409":
-          description: Game already started or full
+          description: Game not in lobby state, full, or user already joined
 
   /games/{gameId}:
     get:
@@ -162,6 +162,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           description: Not the host
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           description: Too few players or game already started
 
@@ -169,7 +171,7 @@ paths:
     post:
       operationId: leaveGame
       tags: [Lobby]
-      summary: Leave game
+      summary: Leave game (lobby only)
       parameters:
         - $ref: "#/components/parameters/GameId"
       responses:
@@ -178,6 +180,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: Game already started
 
   /games/{gameId}/players:
     get:
@@ -266,12 +270,14 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: Game not yet started
 
   /games/{gameId}/current/photo:
     post:
       operationId: uploadPhoto
       tags: [Round]
-      summary: Upload photo
+      summary: Upload photo (upload phase only, one per team)
       parameters:
         - $ref: "#/components/parameters/GameId"
       requestBody:
@@ -280,27 +286,30 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [photo]
+              required: [photo, lat, lng]
               properties:
                 photo:
                   type: string
                   format: binary
+                lat: { type: number, format: double, minimum: -90, maximum: 90 }
+                lng: { type: number, format: double, minimum: -180, maximum: 180 }
+                hint: { type: string }
       responses:
-        "201": { description: Photo uploaded successfully }
+        "201": { description: Photo uploaded }
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          description: Not in upload phase or team already uploaded
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
-          $ref: "#/components/responses/Conflict"
-        "410": { description: Upload time expired }
+          description: Photo already uploaded by this team
+        "410": { description: Upload deadline expired }
 
     put:
       operationId: replacePhoto
       tags: [Round]
-      summary: Replace photo
+      summary: Replace photo (upload phase only)
       parameters:
         - $ref: "#/components/parameters/GameId"
       requestBody:
@@ -309,36 +318,39 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [photo]
+              required: [photo, lat, lng]
               properties:
                 photo:
                   type: string
                   format: binary
+                lat: { type: number, format: double, minimum: -90, maximum: 90 }
+                lng: { type: number, format: double, minimum: -180, maximum: 180 }
+                hint: { type: string }
       responses:
-        "200": { description: Photo replaced successfully }
+        "200": { description: Photo replaced }
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          description: Not in upload phase or no existing photo to replace
         "404":
           $ref: "#/components/responses/NotFound"
-        "410": { description: Upload time expired }
+        "410": { description: Upload deadline expired }
 
     delete:
       operationId: deletePhoto
       tags: [Round]
-      summary: Delete photo
+      summary: Delete photo (upload phase only)
       parameters:
         - $ref: "#/components/parameters/GameId"
       responses:
-        "204": { description: Photo deleted successfully }
+        "204": { description: Photo deleted }
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          description: Not in upload phase or no photo to delete
         "404":
           $ref: "#/components/responses/NotFound"
-        "410": { description: Upload time expired }
+        "410": { description: Upload deadline expired }
 
   /games/{gameId}/current/status:
     get:
@@ -366,7 +378,7 @@ paths:
     get:
       operationId: getTeamPhoto
       tags: [Guess]
-      summary: Get opponent team's photo
+      summary: Get opponent team's photo (guess phase only)
       parameters:
         - $ref: "#/components/parameters/GameId"
         - name: teamId
@@ -386,7 +398,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          description: Not in guess phase or requesting own team's photo
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -574,6 +586,8 @@ components:
           currentRound,
           maxPlayers,
           createdAt,
+          roundDurationHours,
+          photoViewSeconds,
         ]
       properties:
         id: { type: string, format: uuid }
@@ -584,9 +598,11 @@ components:
         status: { $ref: "#/components/schemas/GameStatus" }
         hostId: { type: string, format: uuid }
         totalRounds: { type: integer, example: 5 }
-        currentRound: { type: integer, example: 1 }
+        currentRound: { type: integer, example: 0, description: "0 while in lobby, 1-based once game has started" }
         maxPlayers: { type: integer, example: 8 }
         createdAt: { type: string, format: date-time }
+        startedAt: { type: string, format: date-time, nullable: true }
+        finishedAt: { type: string, format: date-time, nullable: true }
         roundDurationHours: { type: integer, example: 24 }
         photoViewSeconds: { type: integer, example: 120 }
 
@@ -612,11 +628,11 @@ components:
     # ── Players & Teams ───────────────────
     Player:
       type: object
-      required: [id, username, isHost, joinedAt]
+      required: [id, username, teamId, isHost, joinedAt]
       properties:
         id: { type: string, format: uuid }
         username: { type: string }
-        teamId: { type: string, format: uuid, nullable: true }
+        teamId: { type: string, format: uuid }
         isHost: { type: boolean }
         joinedAt: { type: string, format: date-time }
 
@@ -636,20 +652,36 @@ components:
       type: string
       enum: [upload, guess, calculateResults]
 
+    RoundPhotographerAssignment:
+      type: object
+      required: [teamId, userId]
+      properties:
+        teamId: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+
     Round:
       type: object
-      required: [roundNumber, phase, deadline]
+      required: [id, roundNumber, phase, photographers]
       properties:
+        id: { type: string, format: uuid }
         roundNumber: { type: integer, example: 1 }
         phase: { $ref: "#/components/schemas/RoundPhase" }
-        deadline: { type: string, format: date-time }
+        deadline: { type: string, format: date-time, nullable: true }
+        photographers:
+          type: array
+          items: { $ref: "#/components/schemas/RoundPhotographerAssignment" }
+
+    TeamUploadStatus:
+      type: object
+      required: [teamId, status]
+      properties:
+        teamId: { type: string, format: uuid }
+        status: { type: string, enum: [uploaded, pending] }
 
     UploadStatus:
-      type: object
-      required: [teamA, teamB]
-      properties:
-        teamA: { type: string, enum: [uploaded, pending] }
-        teamB: { type: string, enum: [uploaded, pending] }
+      type: array
+      items:
+        $ref: "#/components/schemas/TeamUploadStatus"
 
     # ── Guess ─────────────────────────────
     GuessRequest:
@@ -675,24 +707,27 @@ components:
 
     Guess:
       type: object
-      required: [id, playerId, lat, lng, submittedAt]
+      required: [id, playerId, lat, lng, viewingDeadline, guessDeadline]
       properties:
         id: { type: string, format: uuid }
         playerId: { type: string, format: uuid }
         lat: { type: number, format: double, example: 48.137154 }
         lng: { type: number, format: double, example: 11.576124 }
-        submittedAt: { type: string, format: date-time }
+        distanceMeters: { type: number, format: double, nullable: true }
+        viewingDeadline: { type: string, format: date-time }
+        guessDeadline: { type: string, format: date-time }
 
     # ── Results ───────────────────────────
     GuessResult:
       type: object
-      required: [playerId, lat, lng, distanceMeters, points]
+      required: [teamId, playerId, lat, lng, distanceMeters, teamPoints]
       properties:
+        teamId: { type: string, format: uuid }
         playerId: { type: string, format: uuid }
         lat: { type: number, format: double }
         lng: { type: number, format: double }
         distanceMeters: { type: number, format: double, example: 1234.5 }
-        points: { type: integer, example: 850 }
+        teamPoints: { type: integer, example: 850 }
 
     RoundResult:
       type: object
@@ -715,9 +750,9 @@ components:
 
     GameResult:
       type: object
-      required: [winnerTeamId, leaderboard]
+      required: [leaderboard]
       properties:
-        winnerTeamId: { type: string, format: uuid }
+        winnerTeamId: { type: string, format: uuid, nullable: true, description: "null on tie" }
         leaderboard:
           type: array
           items: { $ref: "#/components/schemas/LeaderboardEntry" }
