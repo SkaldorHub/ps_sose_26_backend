@@ -25,8 +25,13 @@ struct CreateGame: AsyncMigration {
             .field(Game.FieldKeys.photoViewSeconds, .int, .required)
             .field(Game.FieldKeys.startedAt, .datetime)
             .field(Game.FieldKeys.finishedAt, .datetime)
+<<<<<<< HEAD
             .field("created_at", .datetime)
             .unique(on: Game.FieldKeys.code)
+=======
+            .field(Game.FieldKeys.state, gameState, .required)
+            .field(Game.FieldKeys.name, .string, .required)
+>>>>>>> main
             .create()
     }
 
