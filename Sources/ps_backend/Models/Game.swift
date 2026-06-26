@@ -9,10 +9,14 @@ final class Game: Model, Content, @unchecked Sendable {
         static var startedAt: FieldKey { "started_at" }
         static var finishedAt: FieldKey { "finished_at" }
         static var code: FieldKey { "code" }
+        static var name: FieldKey { "name" }
         static var totalRounds: FieldKey { "total_rounds" }
         static var maxPlayers: FieldKey { "max_players" }
         static var roundDurationHours: FieldKey { "round_duration_hours" }
+        static var uploadPhaseHours: FieldKey { "upload_phase_hours" }
+        static var guessingPhaseHours: FieldKey { "guessing_phase_hours" }
         static var photoViewSeconds: FieldKey { "photo_view_seconds" }
+        static var setMarkerSeconds: FieldKey { "set_marker_seconds" }
         static var createdAt: FieldKey { "created_at" }
     }
 
@@ -42,6 +46,9 @@ final class Game: Model, Content, @unchecked Sendable {
     @Field(key: FieldKeys.code)
     var code: String
 
+    @Field(key: FieldKeys.name)
+    var name: String
+
     @Field(key: FieldKeys.totalRounds)
     var totalRounds: Int
 
@@ -51,8 +58,17 @@ final class Game: Model, Content, @unchecked Sendable {
     @Field(key: FieldKeys.roundDurationHours)
     var roundDurationHours: Int
 
+    @Field(key: FieldKeys.uploadPhaseHours)
+    var uploadPhaseHours: Int
+
+    @Field(key: FieldKeys.guessingPhaseHours)
+    var guessingPhaseHours: Int
+
     @Field(key: FieldKeys.photoViewSeconds)
     var photoViewSeconds: Int
+
+    @Field(key: FieldKeys.setMarkerSeconds)
+    var setMarkerSeconds: Int
 
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?
@@ -69,15 +85,20 @@ final class Game: Model, Content, @unchecked Sendable {
     init() {}
 
     init(id: UUID? = nil, state: Game.State, hostID: UUID,
-         code: String, totalRounds: Int, maxPlayers: Int,
-         roundDurationHours: Int, photoViewSeconds: Int) {
+         code: String, name: String, totalRounds: Int, maxPlayers: Int,
+         roundDurationHours: Int, uploadPhaseHours: Int, guessingPhaseHours: Int,
+         photoViewSeconds: Int, setMarkerSeconds: Int) {
         self.id = id
         self.state = state
         self.$host.id = hostID
         self.code = code
+        self.name = name
         self.totalRounds = totalRounds
         self.maxPlayers = maxPlayers
         self.roundDurationHours = roundDurationHours
+        self.uploadPhaseHours = uploadPhaseHours
+        self.guessingPhaseHours = guessingPhaseHours
         self.photoViewSeconds = photoViewSeconds
+        self.setMarkerSeconds = setMarkerSeconds
     }
 }

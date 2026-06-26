@@ -44,6 +44,7 @@ extension APIHandler {
         return Components.Schemas.Game(
             id: try game.requireID().uuidString,
             code: game.code,
+            name: game.name,
             status: status,
             hostId: game.$host.id.uuidString,
             totalRounds: game.totalRounds,
@@ -53,7 +54,10 @@ extension APIHandler {
             startedAt: game.startedAt,
             finishedAt: game.finishedAt,
             roundDurationHours: game.roundDurationHours,
-            photoViewSeconds: game.photoViewSeconds
+            uploadPhaseHours: game.uploadPhaseHours,
+            guessingPhaseHours: game.guessingPhaseHours,
+            photoViewSeconds: game.photoViewSeconds,
+            setMarkerSeconds: game.setMarkerSeconds
         )
     }
 
@@ -98,10 +102,14 @@ extension APIHandler {
             let code = try await generateUniqueCode()
             let game = Game(
                 state: .lobby, hostID: userID, code: code,
-                totalRounds: body.totalRounds ?? 5,
-                maxPlayers: body.maxPlayers ?? 8,
-                roundDurationHours: body.roundDurationHours ?? 24,
-                photoViewSeconds: body.photoViewSeconds ?? 120
+                name: body.name,
+                totalRounds: 5,
+                maxPlayers: 8,
+                roundDurationHours: 24,
+                uploadPhaseHours: 24,
+                guessingPhaseHours: 24,
+                photoViewSeconds: 300,
+                setMarkerSeconds: 300
             )
             try await game.save(on: db)
             let gameID = try game.requireID()
@@ -270,5 +278,14 @@ extension APIHandler {
             )
         }
         return .ok(.init(body: .json(teams)))
+    }
+
+    func getGamesForPlayer(_ input: Operations.getGamesForPlayer.Input) async throws -> Operations.getGamesForPlayer.Output {
+        guard let playerUUID = UUID(uuidString: input.path.playerId) else { throw Abort(.badRequest) }
+        let memberships = try await TeamMember.query(on: db)
+            .filter(\.$user.$id == playerUUID)
+            .all()
+        let gameIDs = memberships.map { $0.$game.id.uuidString }
+        return .ok(.init(body: .json(gameIDs)))
     }
 }

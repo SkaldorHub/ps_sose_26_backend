@@ -249,6 +249,31 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /games/by-player/{playerId}:
+    get:
+      operationId: getGamesForPlayer
+      tags: [Lobby]
+      summary: Get all game IDs for a player
+      parameters:
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   # ──────────────────────────────────────────
   # Round / Upload Phase
   # ──────────────────────────────────────────
@@ -580,6 +605,7 @@ components:
         [
           id,
           code,
+          name,
           status,
           hostId,
           totalRounds,
@@ -587,7 +613,10 @@ components:
           maxPlayers,
           createdAt,
           roundDurationHours,
+          uploadPhaseHours,
+          guessingPhaseHours,
           photoViewSeconds,
+          setMarkerSeconds,
         ]
       properties:
         id: { type: string, format: uuid }
@@ -595,6 +624,7 @@ components:
           type: string
           pattern: "^[A-Z0-9]{6}$"
           example: "ABC123"
+        name: { type: string, example: "Mein Spiel" }
         status: { $ref: "#/components/schemas/GameStatus" }
         hostId: { type: string, format: uuid }
         totalRounds: { type: integer, example: 5 }
@@ -604,17 +634,16 @@ components:
         startedAt: { type: string, format: date-time, nullable: true }
         finishedAt: { type: string, format: date-time, nullable: true }
         roundDurationHours: { type: integer, example: 24 }
-        photoViewSeconds: { type: integer, example: 120 }
+        uploadPhaseHours: { type: integer, example: 24 }
+        guessingPhaseHours: { type: integer, example: 24 }
+        photoViewSeconds: { type: integer, example: 300 }
+        setMarkerSeconds: { type: integer, example: 300 }
 
     CreateGameRequest:
       type: object
+      required: [name]
       properties:
-        totalRounds: { type: integer, minimum: 1, maximum: 10, default: 5 }
-        maxPlayers: { type: integer, minimum: 2, maximum: 16, default: 8 }
-        roundDurationHours:
-          { type: integer, minimum: 1, maximum: 336, default: 24 }
-        photoViewSeconds:
-          { type: integer, minimum: 5, maximum: 1800, default: 120 }
+        name: { type: string, minLength: 1, maxLength: 64, example: "Mein Spiel" }
 
     JoinGameRequest:
       type: object
