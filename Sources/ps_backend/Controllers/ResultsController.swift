@@ -5,14 +5,15 @@ import Fluent
 
 extension APIHandler {
 
-    /// Holt die aktuellste Runde, prüft ob roundOver ist, holt dann Foto und alle Guesses, gibt aktuelles Ergebnis zurück.
+    private var db: any Database { app.db }
+
+    /// Holt die aktuellste Runde, prüft ob calculateResults ist, holt dann Foto und alle Guesses, gibt aktuelles Ergebnis zurück.
     func getCurrentResult(_ input: Operations.getCurrentResult.Input) async throws -> Operations.getCurrentResult.Output {
-        let db = app.db
         guard let gameId = UUID(uuidString: input.path.gameId) else {
             return .notFound(.init())
         }
 
-        try requireAuth()
+        _ = try currentUserID()
 
         // Nach gameID filtern um alle Runden für das aktuelle Game zu finden und dann Runden absteigend sortieren, um die aktuelle Runde zu erhalten
         let round = try await Round.query(on: db)
@@ -24,8 +25,8 @@ extension APIHandler {
             return .notFound(.init())
         }
 
-        // sicherstellen, dass ein gültiges Ergebnis vorhanden ist 
-        guard round.currentPhase == .roundOver else {
+        // sicherstellen, dass ein gültiges Ergebnis vorhanden ist
+        guard round.currentPhase == .calculateResults else {
             return .notFound(.init())
         }
 
@@ -38,22 +39,28 @@ extension APIHandler {
             return .notFound(.init())
         }
 
-        
         // Alle Guesses der aktuellen Runde holen
         let guesses = try await Guess.query(on: db)
             .filter(\.$round.$id == round.requireID())
             .all()
 
-        let guessResults = guesses.map { guess in
-            Components.Schemas.GuessResult(
+        var guessResults: [Components.Schemas.GuessResult] = []
+        for guess in guesses {
+            let teamMember = try await TeamMember.query(on: db)
+                .filter(\.$user.$id == guess.$user.id)
+                .filter(\.$game.$id == gameId)
+                .first()
+            guard let teamMember = teamMember else { continue }
+            guessResults.append(Components.Schemas.GuessResult(
+                teamId: teamMember.$team.id.uuidString,
                 playerId: guess.$user.id.uuidString,
                 lat: guess.latitude,
                 lng: guess.longitude,
                 distanceMeters: guess.distance ?? 0,
-                points: guess.points ?? 0
-            )
+                teamPoints: guess.points ?? 0
+            ))
         }
-        
+
         return .ok(.init(body: .json(.init(
             roundNumber: round.roundNumber,
             actualLat: photo.latitude,
@@ -64,19 +71,18 @@ extension APIHandler {
 
     /// Hilfsmethode zum berechnen von den Scores aller Teams eines Spiels
     private func calculateLeaderboard(gameId: UUID) async throws -> [Components.Schemas.LeaderboardEntry] {
-        let db = app.db
-        // gibt 2 teams zurück die Teil des Spiels sind
+        // gibt Teams zurück die Teil des Spiels sind
         let teamsFromThisGame = try await Participate.query(on: db)
             .filter(\.$game.$id == gameId)
             .all()
 
         // gibt alle Runden zurück die zu diesem Spiel gehören
-        let round = try await Round.query(on: db)
+        let rounds = try await Round.query(on: db)
             .filter(\.$game.$id == gameId)
             .all()
 
-        // Array aus RundenIds 
-        let roundIds = try round.map { try $0.requireID() }
+        // Array aus RundenIds
+        let roundIds = try rounds.map { try $0.requireID() }
 
         // Array bestehend aus Team und Score von Team
         var leaderboard: [Components.Schemas.LeaderboardEntry] = []
@@ -101,22 +107,22 @@ extension APIHandler {
             leaderboard.append(Components.Schemas.LeaderboardEntry(
                 teamId: try team.requireID().uuidString,
                 teamName: team.name,
-                score: gameResult )
-            )
+                score: gameResult
+            ))
         }
         return leaderboard
     }
-    
+
     /// gibt Leaderboard zurück
     func getLeaderboard(_ input: Operations.getLeaderboard.Input) async throws -> Operations.getLeaderboard.Output {
         guard let gameId = UUID(uuidString: input.path.gameId) else {
             return .notFound(.init())
         }
 
-        try requireAuth()
-       
+        _ = try currentUserID()
+
         let leaderboard = try await calculateLeaderboard(gameId: gameId)
-    
+
         return .ok(.init(body: .json(leaderboard)))
     }
 
@@ -125,26 +131,25 @@ extension APIHandler {
         guard let gameId = UUID(uuidString: input.path.gameId) else {
             return .notFound(.init())
         }
-        
-        try requireAuth()
+
+        _ = try currentUserID()
 
         let leaderboard = try await calculateLeaderboard(gameId: gameId)
 
         // Team mit dem höchsten Score als Gewinner bestimmen
         let winner = leaderboard.max(by: { $0.score < $1.score })
 
-        guard let winner = winner else { 
-            return .notFound(.init())
-        }
-
-        return .ok(.init (body: .json(.init(
-            winnerTeamId: winner.teamId,
+        return .ok(.init(body: .json(.init(
+            winnerTeamId: winner?.teamId,
             leaderboard: leaderboard
         ))))
     }
 
     /// Hilfsmethode zum prüfen ob der User eingeloggt ist, wirft 401 falls nicht
-    private func requireAuth() throws {
-        _ = try currentUserID()
-}
+    private func currentUserID() throws -> UUID {
+        guard let id = AuthMiddleware.currentUserID else {
+            throw Abort(.unauthorized)
+        }
+        return id
+    }
 }

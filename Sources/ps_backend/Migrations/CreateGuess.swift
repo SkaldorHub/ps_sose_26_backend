@@ -11,16 +11,16 @@ struct CreateGuess: AsyncMigration {
             .field(Guess.FieldKeys.roundID, .uuid, .required, .references(Round.schema, "id", onDelete: .restrict))
             .field(Guess.FieldKeys.latitude, .double, .required)
             .field(Guess.FieldKeys.longitude, .double, .required)
-            // distance and points are calculated after the guess is made
+            // distance is calculated after the guess is made
             .field(Guess.FieldKeys.distance, .double)
             .field(Guess.FieldKeys.points, .int)
             .field(Guess.FieldKeys.viewingDeadline, .datetime, .required)
             .field(Guess.FieldKeys.guessDeadline, .datetime, .required)
+            .unique(on: Guess.FieldKeys.userID, Guess.FieldKeys.roundID)
             .create()
     }
 
-    // Deletes the "guesses" table if the migration is reverted
-    func revert(on database: Database) async throws {
+    func revert(on database: any Database) async throws {
         try await database.schema(Guess.schema).delete()
     }
 }
