@@ -1,10 +1,8 @@
 import Fluent
 
-/// Migration to create the "user" table in the database
 struct CreateUser: AsyncMigration {
 
-    // Creates the "user" table with the specified fields
-    func prepare(on database: Database) async throws {
+    func prepare(on database: any Database) async throws {
         try await database.schema(User.schema)
             .id()
             .field(User.FieldKeys.username, .string, .required)
@@ -12,8 +10,7 @@ struct CreateUser: AsyncMigration {
             .create()
     }
 
-    // Deletes the "user" table if the migration is reverted
-    func revert(on database: Database) async throws {
+    func revert(on database: any Database) async throws {
         try await database.schema(User.schema).delete()
     }
 }
