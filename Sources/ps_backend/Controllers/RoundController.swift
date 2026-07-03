@@ -57,11 +57,9 @@
                 return .undocumented(statusCode: 404, .init())
             }
             
-            // TODO: photographerId aus JWT lesen
-            let photographerIdOptional: Foundation.UUID? = nil
-            guard let photographerId: Foundation.UUID = photographerIdOptional else {
-                 return .undocumented(statusCode: 401, .init())
-             }
+            guard let photographerId = AuthMiddleware.currentUserID else {
+                return .undocumented(statusCode: 401, .init())
+            }
             
             guard case .multipartForm(let multipart) = input.body else {
                 return .undocumented(statusCode: 400, .init())
@@ -147,9 +145,7 @@
                 return .undocumented(statusCode: 404, .init())
             }
             
-            // TODO: photographerId aus JWT lesen 
-            let photographerIdOptional: Foundation.UUID? = nil
-            guard let photographerId: Foundation.UUID = photographerIdOptional else {
+            guard let photographerId = AuthMiddleware.currentUserID else {
                 return .undocumented(statusCode: 401, .init())
             }
 
@@ -235,9 +231,7 @@
                 return .undocumented(statusCode: 404, .init())
             }
             
-            // TODO: photographerId aus JWT lesen
-            let photographerIdOptional: Foundation.UUID? = nil
-            guard let photographerId: Foundation.UUID = photographerIdOptional else {
+            guard let photographerId = AuthMiddleware.currentUserID else {
                 return .undocumented(statusCode: 401, .init())
             }
 
