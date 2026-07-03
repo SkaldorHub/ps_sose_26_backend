@@ -101,6 +101,19 @@ wait_for_phase() {
   return 1
 }
 
+run_remaining_rounds_to_finish() {
+  # Jede verbleibende Runde braucht 2 Scheduler-Ticks (upload->guess, guess->calculateResults),
+  # der Scheduler läuft alle 60s -> für bis zu 5 Runden (10 Ticks) reichlich Budget einplanen.
+  local game_id="$1" token="$2"
+  for _ in $(seq 1 50); do
+    force_active_round_deadline_past "$game_id"
+    call GET "/games/$game_id" "$token"
+    [ "$(echo "$HTTP_BODY" | jq -r '.status')" = "finished" ] && return 0
+    sleep 15
+  done
+  return 1
+}
+
 wait_for_game_status() {
   # wait_for_game_status GAME_ID TOKEN EXPECTED_STATUS
   local game_id="$1" token="$2" expected="$3"
@@ -218,12 +231,8 @@ test_full_game_with_winner() {
   assert_eq "Team B (weit weg getippt) hat 0 Punkte" "0" "$score_b"
 
   # verbleibende Runden 2-5 ohne weitere Interaktion durchlaufen lassen (0:0 je Runde)
-  for _ in 1 2 3 4 5 6 7 8; do
-    force_active_round_deadline_past "$game_id"
-    call GET "/games/$game_id" "$token_a"
-    [ "$(echo "$HTTP_BODY" | jq -r '.status')" = "finished" ] && break
-    sleep 10
-  done
+  run_remaining_rounds_to_finish "$game_id" "$token_a" || true
+  call GET "/games/$game_id" "$token_a"
   assert_eq "Spiel ist nach 5 Runden 'finished'" "finished" "$(echo "$HTTP_BODY" | jq -r '.status')"
 
   call GET "/games/$game_id/result" "$token_a"
@@ -274,13 +283,9 @@ test_tie_break() {
   create_game_with_two_players "$token_a" "$token_b"
   local game_id="$GAME_ID"
 
-  # niemand lädt jemals ein Foto hoch -> jede Runde endet 0:0
-  for _ in 1 2 3 4 5 6 7 8; do
-    force_active_round_deadline_past "$game_id"
-    call GET "/games/$game_id" "$token_a"
-    [ "$(echo "$HTTP_BODY" | jq -r '.status')" = "finished" ] && break
-    sleep 10
-  done
+  # niemand lädt jemals ein Foto hoch -> jede Runde endet 0:0 (alle 5 Runden brauchen 10 Ticks)
+  run_remaining_rounds_to_finish "$game_id" "$token_a" || true
+  call GET "/games/$game_id" "$token_a"
   assert_eq "Spiel ist 'finished'" "finished" "$(echo "$HTTP_BODY" | jq -r '.status')"
 
   call GET "/games/$game_id/result" "$token_a"
