@@ -43,6 +43,10 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateRoundResult())
     app.migrations.add(AddGameFields())
 
+    // add queues
+    app.queues.schedule(PhaseScheduler()).every(minutes: 1)
+    try app.queues.startScheduledJobs()
+
     // register routes
     try routes(app)
 }
