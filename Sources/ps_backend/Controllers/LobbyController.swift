@@ -91,6 +91,7 @@ extension APIHandler {
                 guard !members.isEmpty else { continue }
                 let photographerID = members[(n - 1) % members.count]
                 try await RoundPhotographer(roundID: roundID, teamID: teamID, userID: photographerID).save(on: db)
+                try await RoundResult(roundID: roundID, teamID: teamID, teamPoints: 0).save(on: db)
             }
         }
     }

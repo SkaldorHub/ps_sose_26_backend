@@ -319,6 +319,9 @@ paths:
                 lat: { type: number, format: double, minimum: -90, maximum: 90 }
                 lng: { type: number, format: double, minimum: -180, maximum: 180 }
                 hint: { type: string }
+            encoding:
+              photo:
+                contentType: image/*
       responses:
         "201": { description: Photo uploaded }
         "401":
@@ -329,52 +332,6 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           description: Photo already uploaded by this team
-        "410": { description: Upload deadline expired }
-
-    put:
-      operationId: replacePhoto
-      tags: [Round]
-      summary: Replace photo (upload phase only)
-      parameters:
-        - $ref: "#/components/parameters/GameId"
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [photo, lat, lng]
-              properties:
-                photo:
-                  type: string
-                  format: binary
-                lat: { type: number, format: double, minimum: -90, maximum: 90 }
-                lng: { type: number, format: double, minimum: -180, maximum: 180 }
-                hint: { type: string }
-      responses:
-        "200": { description: Photo replaced }
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          description: Not in upload phase or no existing photo to replace
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "410": { description: Upload deadline expired }
-
-    delete:
-      operationId: deletePhoto
-      tags: [Round]
-      summary: Delete photo (upload phase only)
-      parameters:
-        - $ref: "#/components/parameters/GameId"
-      responses:
-        "204": { description: Photo deleted }
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          description: Not in upload phase or no photo to delete
-        "404":
-          $ref: "#/components/responses/NotFound"
         "410": { description: Upload deadline expired }
 
   /games/{gameId}/current/status:

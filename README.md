@@ -31,7 +31,7 @@ In `~/geoguesser_backend` ausführen: ``docker compose down``
 ### 2. Verzeichnis kopieren
 Der Befehl soll innerhalb des Projektverzeichnis ausgeführt werden
 
-``rsync -av --exclude='.build' . local@141.45.191.253:~/geoguesser_backend/``
+``rsync -av --exclude='.build' --exclude='*.d' --exclude='*.dia' . local@141.45.191.253:~/geoguesser_backend/``
 ### 3. Setup
 Hier dann die Schritte des Setup nachholen
 

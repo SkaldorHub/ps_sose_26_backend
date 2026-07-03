@@ -2,6 +2,8 @@ import NIOSSL
 import Fluent
 import FluentPostgresDriver
 import Vapor
+import JWT
+import SotoS3
 
 // configures your application
 public func configure(_ app: Application) async throws {
@@ -30,6 +32,21 @@ public func configure(_ app: Application) async throws {
         allowedHeaders: [.accept, .authorization, .contentType, .origin]
     )
     app.middleware.use(CORSMiddleware(configuration: corsConfiguration), at: .beginning)
+
+    // auth
+    await app.jwt.keys.add(hmac: .init(from: require("JWT_SECRET")), digestAlgorithm: .sha256)
+
+    // photo storage (MinIO, S3-compatible)
+    let awsClient = AWSClient(credentialProvider: .static(
+        accessKeyId: require("MINIO_USER"),
+        secretAccessKey: require("MINIO_SECRET")
+    ))
+    app.photoStorage = PhotoStorage(
+        s3: S3(client: awsClient, endpoint: require("MINIO_ENDPOINT")),
+        bucket: require("MINIO_BUCKET")
+    )
+    app.lifecycle.use(AWSClientLifecycleHandler(client: awsClient))
+    try await app.photoStorage.ensureBucketExists()
 
     // add migrations
     app.migrations.add(CreateUser())

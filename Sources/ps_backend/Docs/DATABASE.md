@@ -23,11 +23,9 @@
 - `gameOver` – Spiel ist beendet
 
 **Rundenphase** (`rounds.current_phase`)
-- `uploading` – Fotografen laden Fotos hoch
-- `viewingPhotos` – Teams sehen das Foto des Gegners
-- `guessing` – Teams setzen ihren Tipp auf der Karte
-- `calculatingResults` – System berechnet die Punkte
-- `roundOver` – Runde ist beendet
+- `upload` – Fotografen laden Fotos hoch
+- `guess` – Teams sehen das Foto des Gegners und setzen ihren Tipp auf der Karte
+- `calculateResults` – Runde ist beendet, Punkte wurden berechnet
 
 ## Lokales Setup
 1. Docker Desktop starten

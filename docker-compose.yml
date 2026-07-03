@@ -12,6 +12,7 @@ x-shared_environment: &shared_environment
   MINIO_USER: &minio_user ${MINIO_USER:-minioadmin}
   MINIO_SECRET: &minio_password ${MINIO_SECRET:-minioadmin}
   MINIO_BUCKET: ${MINIO_BUCKET:-photos}
+  JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
 
 services:
   migrate:

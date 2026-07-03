@@ -15,6 +15,8 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-openapi-runtime.git", from: "1.0.0"),
         .package(url: "https://github.com/swift-server/swift-openapi-vapor.git", from: "1.0.0"),
         .package(url: "https://github.com/vapor/queues.git", from: "1.14.0"),
+        .package(url: "https://github.com/vapor/jwt.git", from: "5.0.0"),
+        .package(url: "https://github.com/soto-project/soto.git", from: "7.0.0"),
     ],
     targets: [
         .executableTarget(
@@ -28,6 +30,8 @@ let package = Package(
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
                 .product(name: "OpenAPIVapor", package: "swift-openapi-vapor"),
                 .product(name: "Queues", package: "queues"),
+                .product(name: "JWT", package: "jwt"),
+                .product(name: "SotoS3", package: "soto"),
             ],
             swiftSettings: swiftSettings,
             plugins: [

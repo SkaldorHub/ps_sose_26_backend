@@ -15,18 +15,13 @@ extension APIHandler {
 
         _ = try currentUserID()
 
-        // Nach gameID filtern um alle Runden für das aktuelle Game zu finden und dann Runden absteigend sortieren, um die aktuelle Runde zu erhalten
-        let round = try await Round.query(on: db)
+        // Nach gameID filtern, Runden absteigend sortieren und die zuletzt abgeschlossene Runde nehmen
+        let rounds = try await Round.query(on: db)
             .filter(\.$game.$id == gameId)
             .sort(\.$roundNumber, .descending)
-            .first()
+            .all()
 
-        guard let round = round else {
-            return .notFound(.init())
-        }
-
-        // sicherstellen, dass ein gültiges Ergebnis vorhanden ist
-        guard round.currentPhase == .calculateResults else {
+        guard let round = rounds.first(where: { $0.currentPhase == .calculateResults }) else {
             return .notFound(.init())
         }
 
@@ -136,11 +131,13 @@ extension APIHandler {
 
         let leaderboard = try await calculateLeaderboard(gameId: gameId)
 
-        // Team mit dem höchsten Score als Gewinner bestimmen
-        let winner = leaderboard.max(by: { $0.score < $1.score })
+        // Team mit dem höchsten Score als Gewinner bestimmen (kein Gewinner bei Gleichstand)
+        let maxScore = leaderboard.map(\.score).max()
+        let topTeams = leaderboard.filter { $0.score == maxScore }
+        let winnerTeamId = topTeams.count == 1 ? topTeams.first?.teamId : nil
 
         return .ok(.init(body: .json(.init(
-            winnerTeamId: winner?.teamId,
+            winnerTeamId: winnerTeamId,
             leaderboard: leaderboard
         ))))
     }
