@@ -26,7 +26,7 @@ FAIL=0
 
 # 1x1-PNG (rotes Pixel) als Testbild, hex-kodiert um ohne Binärdatei im Repo auszukommen.
 TEST_PNG_HEX="89504e470d0a1a0a0000000d4948445200000001000000010802000000907753de0000000c49444154789c63f8cfc0000003010100c9fe92ef0000000049454e44ae426082"
-TEST_PNG="$(mktemp -t e2e-photo).png"
+TEST_PNG="$(mktemp -t e2e-photo.XXXXXX).png"
 xxd -r -p <<<"$TEST_PNG_HEX" >"$TEST_PNG"
 trap 'rm -f "$TEST_PNG"' EXIT
 
@@ -144,6 +144,8 @@ create_game_with_two_players() {
 
   call POST /games/join "$token_b" "{\"code\":\"$code\"}"
   call POST "/games/$GAME_ID/start" "$token_a"
+
+  echo "DEBUG /teams response: $HTTP_BODY"
 
   call GET "/games/$GAME_ID/teams" "$token_a"
   TEAM_OF_A="$(echo "$HTTP_BODY" | jq -r --arg u "$USERNAME_A" '.[] | select(.players[].username == $u) | .id')"
