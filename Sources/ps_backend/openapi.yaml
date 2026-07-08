@@ -97,6 +97,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Game"
+        "400": { description: "Phase-Sekunden-Overrides ungültig (nur alle vier oder keins, je 5-86400)" }
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -569,9 +570,8 @@ components:
           currentRound,
           maxPlayers,
           createdAt,
-          roundDurationHours,
-          uploadPhaseHours,
-          guessingPhaseHours,
+          uploadPhaseSeconds,
+          guessingPhaseSeconds,
           photoViewSeconds,
           setMarkerSeconds,
         ]
@@ -590,17 +590,24 @@ components:
         createdAt: { type: string, format: date-time }
         startedAt: { type: string, format: date-time, nullable: true }
         finishedAt: { type: string, format: date-time, nullable: true }
-        roundDurationHours: { type: integer, example: 24 }
-        uploadPhaseHours: { type: integer, example: 24 }
-        guessingPhaseHours: { type: integer, example: 24 }
-        photoViewSeconds: { type: integer, example: 300 }
-        setMarkerSeconds: { type: integer, example: 300 }
+        uploadPhaseSeconds: { type: integer, example: 86400, description: "Deadline-Dauer der Upload-Phase in Sekunden" }
+        guessingPhaseSeconds: { type: integer, example: 86400, description: "Deadline-Dauer der Guess-Phase in Sekunden" }
+        photoViewSeconds: { type: integer, example: 300, description: "Client-seitige Anzeigedauer des Fotos, keine Server-Deadline" }
+        setMarkerSeconds: { type: integer, example: 300, description: "Client-seitiges Zeitlimit fürs Pin-Setzen, keine Server-Deadline" }
 
     CreateGameRequest:
       type: object
       required: [name]
+      description: >
+        uploadPhaseSeconds/guessingPhaseSeconds/photoViewSeconds/setMarkerSeconds sind optional,
+        müssen aber entweder alle vier oder keins davon übergeben werden. Ohne Angabe gelten die
+        Standardwerte (86400/86400/300/300).
       properties:
         name: { type: string, minLength: 1, maxLength: 64, example: "Mein Spiel" }
+        uploadPhaseSeconds: { type: integer, minimum: 5, maximum: 86400, example: 60 }
+        guessingPhaseSeconds: { type: integer, minimum: 5, maximum: 86400, example: 60 }
+        photoViewSeconds: { type: integer, minimum: 5, maximum: 86400, example: 15 }
+        setMarkerSeconds: { type: integer, minimum: 5, maximum: 86400, example: 15 }
 
     JoinGameRequest:
       type: object

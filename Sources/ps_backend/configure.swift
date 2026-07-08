@@ -59,6 +59,7 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateGuess())
     app.migrations.add(CreateRoundResult())
     app.migrations.add(AddGameFields())
+    app.migrations.add(RenamePhaseDurationFields())
 
     // add queues
     app.queues.schedule(PhaseScheduler()).every(minutes: 1)

@@ -53,9 +53,8 @@ extension APIHandler {
             createdAt: game.createdAt ?? Date(),
             startedAt: game.startedAt,
             finishedAt: game.finishedAt,
-            roundDurationHours: game.roundDurationHours,
-            uploadPhaseHours: game.uploadPhaseHours,
-            guessingPhaseHours: game.guessingPhaseHours,
+            uploadPhaseSeconds: game.uploadPhaseSeconds,
+            guessingPhaseSeconds: game.guessingPhaseSeconds,
             photoViewSeconds: game.photoViewSeconds,
             setMarkerSeconds: game.setMarkerSeconds
         )
@@ -75,7 +74,7 @@ extension APIHandler {
     // TODO: Replace with RoundService
     private func createRounds(for game: Game, on db: any Database) async throws {
         let gameID = try game.requireID()
-        let roundDuration = TimeInterval(game.roundDurationHours) * 3600
+        let roundDuration = TimeInterval(game.uploadPhaseSeconds)
 
         let allMembers = try await TeamMember.query(on: db).filter(\.$game.$id == gameID).all()
         let membersByTeam = Dictionary(grouping: allMembers, by: { $0.$team.id })
@@ -96,21 +95,53 @@ extension APIHandler {
         }
     }
 
+    /// Erlaubter Wertebereich für die optionalen Phasen-Sekunden-Overrides (Demo-Spiele).
+    private static let phaseSecondsRange = 5...86400
+
+    /// nil = keine Overrides gültig verwendbar (weder komplett fehlend noch komplett vorhanden, oder außerhalb phaseSecondsRange)
+    private func resolvePhaseDurations(
+        uploadPhaseSeconds: Int?, guessingPhaseSeconds: Int?,
+        photoViewSeconds: Int?, setMarkerSeconds: Int?
+    ) -> (uploadPhaseSeconds: Int, guessingPhaseSeconds: Int, photoViewSeconds: Int, setMarkerSeconds: Int)? {
+        let overrides = [uploadPhaseSeconds, guessingPhaseSeconds, photoViewSeconds, setMarkerSeconds]
+
+        guard overrides.contains(where: { $0 != nil }) else {
+            return (uploadPhaseSeconds: 86400, guessingPhaseSeconds: 86400, photoViewSeconds: 300, setMarkerSeconds: 300)
+        }
+
+        guard let uploadPhaseSeconds, let guessingPhaseSeconds, let photoViewSeconds, let setMarkerSeconds else {
+            return nil
+        }
+
+        for value in overrides.compactMap({ $0 }) {
+            guard Self.phaseSecondsRange.contains(value) else { return nil }
+        }
+
+        return (uploadPhaseSeconds, guessingPhaseSeconds, photoViewSeconds, setMarkerSeconds)
+    }
+
     func createGame(_ input: Operations.createGame.Input) async throws -> Operations.createGame.Output {
         let userID = try currentUserID()
         switch input.body {
         case .json(let body):
+            guard let durations = resolvePhaseDurations(
+                uploadPhaseSeconds: body.uploadPhaseSeconds,
+                guessingPhaseSeconds: body.guessingPhaseSeconds,
+                photoViewSeconds: body.photoViewSeconds,
+                setMarkerSeconds: body.setMarkerSeconds
+            ) else {
+                return .badRequest(.init())
+            }
             let code = try await generateUniqueCode()
             let game = Game(
                 state: .lobby, hostID: userID, code: code,
                 name: body.name,
                 totalRounds: 5,
                 maxPlayers: 8,
-                roundDurationHours: 24,
-                uploadPhaseHours: 24,
-                guessingPhaseHours: 24,
-                photoViewSeconds: 300,
-                setMarkerSeconds: 300
+                uploadPhaseSeconds: durations.uploadPhaseSeconds,
+                guessingPhaseSeconds: durations.guessingPhaseSeconds,
+                photoViewSeconds: durations.photoViewSeconds,
+                setMarkerSeconds: durations.setMarkerSeconds
             )
             try await game.save(on: db)
             let gameID = try game.requireID()

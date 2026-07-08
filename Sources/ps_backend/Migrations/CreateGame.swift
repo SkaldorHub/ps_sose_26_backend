@@ -2,6 +2,9 @@ import Fluent
 
 struct CreateGame: AsyncMigration {
 
+    /// Historisches Feld, seit RenamePhaseDurationFields nicht mehr Teil von Game.FieldKeys.
+    private static let roundDurationHours: FieldKey = "round_duration_hours"
+
     func prepare(on database: any Database) async throws {
         let gameState = try await database.enum("state")
             .case(Game.State.lobby.rawValue)
@@ -16,7 +19,7 @@ struct CreateGame: AsyncMigration {
             .field(Game.FieldKeys.code, .string, .required)
             .field(Game.FieldKeys.totalRounds, .int, .required)
             .field(Game.FieldKeys.maxPlayers, .int, .required)
-            .field(Game.FieldKeys.roundDurationHours, .int, .required)
+            .field(Self.roundDurationHours, .int, .required)
             .field(Game.FieldKeys.photoViewSeconds, .int, .required)
             .field(Game.FieldKeys.startedAt, .datetime)
             .field(Game.FieldKeys.finishedAt, .datetime)

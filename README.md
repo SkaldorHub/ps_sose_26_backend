@@ -35,6 +35,16 @@ Der Befehl soll innerhalb des Projektverzeichnis ausgeführt werden
 ### 3. Setup
 Hier dann die Schritte des Setup nachholen
 
+### 4. Starten
+`migrate` und `app` bauen aus demselben Dockerfile das gleiche Image (`ps-backend:latest`). Bei leerem BuildKit-Cache (z.B. nach `docker system prune -a --volumes`) baut Compose beide Services parallel, wodurch zwei `swift build`-Prozesse gleichzeitig in denselben `.build`-Cache-Mount schreiben und mit `multiple producers` fehlschlagen können.
+
+Deshalb Image zuerst einmal seriell bauen, danach ohne `--build` starten:
+
+```
+docker compose build app
+docker compose up -d
+```
+
 # Development Infos
 
 ## Umgebungsvariablen

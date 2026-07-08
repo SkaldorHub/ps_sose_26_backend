@@ -16,7 +16,7 @@ struct PhaseScheduler: AsyncScheduledJob {
             switch round.currentPhase {
             case .upload:
                 round.currentPhase = .guess
-                round.deadline = Date().addingTimeInterval(Double(game.photoViewSeconds))
+                round.deadline = Date().addingTimeInterval(Double(game.guessingPhaseSeconds))
                 try await round.save(on: db)
             case .guess:
                 round.currentPhase = .calculateResults

@@ -12,9 +12,8 @@ final class Game: Model, Content, @unchecked Sendable {
         static var name: FieldKey { "name" }
         static var totalRounds: FieldKey { "total_rounds" }
         static var maxPlayers: FieldKey { "max_players" }
-        static var roundDurationHours: FieldKey { "round_duration_hours" }
-        static var uploadPhaseHours: FieldKey { "upload_phase_hours" }
-        static var guessingPhaseHours: FieldKey { "guessing_phase_hours" }
+        static var uploadPhaseSeconds: FieldKey { "upload_phase_seconds" }
+        static var guessingPhaseSeconds: FieldKey { "guessing_phase_seconds" }
         static var photoViewSeconds: FieldKey { "photo_view_seconds" }
         static var setMarkerSeconds: FieldKey { "set_marker_seconds" }
         static var createdAt: FieldKey { "created_at" }
@@ -55,14 +54,11 @@ final class Game: Model, Content, @unchecked Sendable {
     @Field(key: FieldKeys.maxPlayers)
     var maxPlayers: Int
 
-    @Field(key: FieldKeys.roundDurationHours)
-    var roundDurationHours: Int
+    @Field(key: FieldKeys.uploadPhaseSeconds)
+    var uploadPhaseSeconds: Int
 
-    @Field(key: FieldKeys.uploadPhaseHours)
-    var uploadPhaseHours: Int
-
-    @Field(key: FieldKeys.guessingPhaseHours)
-    var guessingPhaseHours: Int
+    @Field(key: FieldKeys.guessingPhaseSeconds)
+    var guessingPhaseSeconds: Int
 
     @Field(key: FieldKeys.photoViewSeconds)
     var photoViewSeconds: Int
@@ -86,7 +82,7 @@ final class Game: Model, Content, @unchecked Sendable {
 
     init(id: UUID? = nil, state: Game.State, hostID: UUID,
          code: String, name: String, totalRounds: Int, maxPlayers: Int,
-         roundDurationHours: Int, uploadPhaseHours: Int, guessingPhaseHours: Int,
+         uploadPhaseSeconds: Int, guessingPhaseSeconds: Int,
          photoViewSeconds: Int, setMarkerSeconds: Int) {
         self.id = id
         self.state = state
@@ -95,9 +91,8 @@ final class Game: Model, Content, @unchecked Sendable {
         self.name = name
         self.totalRounds = totalRounds
         self.maxPlayers = maxPlayers
-        self.roundDurationHours = roundDurationHours
-        self.uploadPhaseHours = uploadPhaseHours
-        self.guessingPhaseHours = guessingPhaseHours
+        self.uploadPhaseSeconds = uploadPhaseSeconds
+        self.guessingPhaseSeconds = guessingPhaseSeconds
         self.photoViewSeconds = photoViewSeconds
         self.setMarkerSeconds = setMarkerSeconds
     }
