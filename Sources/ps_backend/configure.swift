@@ -62,7 +62,7 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(RenamePhaseDurationFields())
 
     // add queues
-    app.queues.schedule(PhaseScheduler()).every(minutes: 1)
+    app.queues.schedule(PhaseScheduler()).every(seconds: 5)
     try app.queues.startScheduledJobs()
 
     // register routes

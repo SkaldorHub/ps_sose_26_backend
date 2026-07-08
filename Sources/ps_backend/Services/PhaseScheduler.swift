@@ -25,11 +25,26 @@ struct PhaseScheduler: AsyncScheduledJob {
                 try await resolveRoundResults(for: round, on: db)
                 if round.roundNumber == game.totalRounds {
                     try await finishGame(game, on: db)
+                } else {
+                    try await activateNextRound(after: round, game: game, on: db)
                 }
             case .calculateResults:
                 break
             }
         }
+    }
+
+    /// Setzt die Upload-Deadline der nächsten Runde, damit sie beim nächsten Tick vom
+    /// Scheduler erfasst wird - ohne das bleibt jede Runde nach der ersten für immer
+    /// in "upload" mit deadline=nil hängen (deadline < Date()-Filter erfasst sie nie).
+    private func activateNextRound(after round: Round, game: Game, on db: any Database) async throws {
+        guard let nextRound = try await Round.query(on: db)
+            .filter(\.$game.$id == round.$game.id)
+            .filter(\.$roundNumber == round.roundNumber + 1)
+            .first() else { return }
+
+        nextRound.deadline = Date().addingTimeInterval(Double(game.uploadPhaseSeconds))
+        try await nextRound.save(on: db)
     }
 
     /// Team-Punkte je Runde: eigenes Foto fehlt -> 0 P, Gegner-Foto fehlt -> 10 P,
