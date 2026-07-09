@@ -599,15 +599,16 @@ components:
       type: object
       required: [name]
       description: >
-        uploadPhaseSeconds/guessingPhaseSeconds/photoViewSeconds/setMarkerSeconds sind optional,
-        müssen aber entweder alle vier oder keins davon übergeben werden. Ohne Angabe gelten die
-        Standardwerte (86400/86400/300/300).
+        uploadPhaseSeconds/guessingPhaseSeconds/photoViewSeconds/setMarkerSeconds/totalRounds
+        sind optional, müssen aber entweder alle fünf oder keins davon übergeben werden. Ohne
+        Angabe gelten die Standardwerte (86400/86400/300/300/5).
       properties:
         name: { type: string, minLength: 1, maxLength: 64, example: "Mein Spiel" }
         uploadPhaseSeconds: { type: integer, minimum: 5, maximum: 86400, example: 60 }
         guessingPhaseSeconds: { type: integer, minimum: 5, maximum: 86400, example: 60 }
         photoViewSeconds: { type: integer, minimum: 5, maximum: 86400, example: 15 }
         setMarkerSeconds: { type: integer, minimum: 5, maximum: 86400, example: 15 }
+        totalRounds: { type: integer, minimum: 1, maximum: 20, example: 5 }
 
     JoinGameRequest:
       type: object
@@ -741,11 +742,29 @@ components:
         teamName: { type: string, example: "Team A" }
         score: { type: integer, example: 3400 }
 
+    PlayerResult:
+      type: object
+      required: [playerId, username, isMVP, averageDistanceMeters, averagePoints]
+      description: >
+        Durchschnittswerte eines Spielers über alle Runden des Spiels hinweg (nicht nur die
+        aktuelle Runde, siehe GuessResult für den rundenweiten Pendant).
+      properties:
+        playerId: { type: string, format: uuid }
+        username: { type: string }
+        isMVP:
+          type: boolean
+          description: "Spieler mit den meisten Durchschnittspunkten im gesamten Spiel"
+        averageDistanceMeters: { type: number, format: double, example: 214.5 }
+        averagePoints: { type: number, format: double, example: 7.2 }
+
     GameResult:
       type: object
-      required: [leaderboard]
+      required: [leaderboard, players]
       properties:
         winnerTeamId: { type: string, format: uuid, nullable: true, description: "null on tie" }
+        players:
+          type: array
+          items: { $ref: "#/components/schemas/PlayerResult" }
         leaderboard:
           type: array
           items: { $ref: "#/components/schemas/LeaderboardEntry" }

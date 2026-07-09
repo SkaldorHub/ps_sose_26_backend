@@ -97,38 +97,44 @@ extension APIHandler {
 
     /// Erlaubter Wertebereich für die optionalen Phasen-Sekunden-Overrides (Demo-Spiele).
     private static let phaseSecondsRange = 5...86400
+    /// Erlaubter Wertebereich für die optionale totalRounds-Override.
+    private static let totalRoundsRange = 1...20
 
-    /// nil = keine Overrides gültig verwendbar (weder komplett fehlend noch komplett vorhanden, oder außerhalb phaseSecondsRange)
-    private func resolvePhaseDurations(
+    /// nil = keine Overrides gültig verwendbar (weder komplett fehlend noch komplett
+    /// vorhanden, oder ein Wert außerhalb des jeweils erlaubten Bereichs). totalRounds gehört
+    /// zur selben Alles-oder-nichts-Gruppe wie die vier Phasen-Sekunden-Felder.
+    private func resolveGameSettings(
         uploadPhaseSeconds: Int?, guessingPhaseSeconds: Int?,
-        photoViewSeconds: Int?, setMarkerSeconds: Int?
-    ) -> (uploadPhaseSeconds: Int, guessingPhaseSeconds: Int, photoViewSeconds: Int, setMarkerSeconds: Int)? {
-        let overrides = [uploadPhaseSeconds, guessingPhaseSeconds, photoViewSeconds, setMarkerSeconds]
+        photoViewSeconds: Int?, setMarkerSeconds: Int?, totalRounds: Int?
+    ) -> (uploadPhaseSeconds: Int, guessingPhaseSeconds: Int, photoViewSeconds: Int, setMarkerSeconds: Int, totalRounds: Int)? {
+        let overrides = [uploadPhaseSeconds, guessingPhaseSeconds, photoViewSeconds, setMarkerSeconds, totalRounds]
 
         guard overrides.contains(where: { $0 != nil }) else {
-            return (uploadPhaseSeconds: 86400, guessingPhaseSeconds: 86400, photoViewSeconds: 300, setMarkerSeconds: 300)
+            return (uploadPhaseSeconds: 86400, guessingPhaseSeconds: 86400, photoViewSeconds: 300, setMarkerSeconds: 300, totalRounds: 5)
         }
 
-        guard let uploadPhaseSeconds, let guessingPhaseSeconds, let photoViewSeconds, let setMarkerSeconds else {
+        guard let uploadPhaseSeconds, let guessingPhaseSeconds, let photoViewSeconds, let setMarkerSeconds, let totalRounds else {
             return nil
         }
 
-        for value in overrides.compactMap({ $0 }) {
+        for value in [uploadPhaseSeconds, guessingPhaseSeconds, photoViewSeconds, setMarkerSeconds] {
             guard Self.phaseSecondsRange.contains(value) else { return nil }
         }
+        guard Self.totalRoundsRange.contains(totalRounds) else { return nil }
 
-        return (uploadPhaseSeconds, guessingPhaseSeconds, photoViewSeconds, setMarkerSeconds)
+        return (uploadPhaseSeconds, guessingPhaseSeconds, photoViewSeconds, setMarkerSeconds, totalRounds)
     }
 
     func createGame(_ input: Operations.createGame.Input) async throws -> Operations.createGame.Output {
         let userID = try currentUserID()
         switch input.body {
         case .json(let body):
-            guard let durations = resolvePhaseDurations(
+            guard let settings = resolveGameSettings(
                 uploadPhaseSeconds: body.uploadPhaseSeconds,
                 guessingPhaseSeconds: body.guessingPhaseSeconds,
                 photoViewSeconds: body.photoViewSeconds,
-                setMarkerSeconds: body.setMarkerSeconds
+                setMarkerSeconds: body.setMarkerSeconds,
+                totalRounds: body.totalRounds
             ) else {
                 return .badRequest(.init())
             }
@@ -136,12 +142,12 @@ extension APIHandler {
             let game = Game(
                 state: .lobby, hostID: userID, code: code,
                 name: body.name,
-                totalRounds: 5,
+                totalRounds: settings.totalRounds,
                 maxPlayers: 8,
-                uploadPhaseSeconds: durations.uploadPhaseSeconds,
-                guessingPhaseSeconds: durations.guessingPhaseSeconds,
-                photoViewSeconds: durations.photoViewSeconds,
-                setMarkerSeconds: durations.setMarkerSeconds
+                uploadPhaseSeconds: settings.uploadPhaseSeconds,
+                guessingPhaseSeconds: settings.guessingPhaseSeconds,
+                photoViewSeconds: settings.photoViewSeconds,
+                setMarkerSeconds: settings.setMarkerSeconds
             )
             try await game.save(on: db)
             let gameID = try game.requireID()

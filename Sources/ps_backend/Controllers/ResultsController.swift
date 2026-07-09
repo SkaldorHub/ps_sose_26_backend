@@ -121,6 +121,46 @@ extension APIHandler {
         return .ok(.init(body: .json(leaderboard)))
     }
 
+    /// Durchschnittsdistanz/-punkte je Spieler über alle Runden des Spiels (nicht nur die
+    /// aktuelle Runde). MVP = Spieler mit den meisten Durchschnittspunkten, sofern überhaupt
+    /// mindestens ein Tipp mit Punkten existiert (sonst kein MVP statt eines zufälligen bei
+    /// lauter 0en).
+    private func calculatePlayerResults(gameId: UUID) async throws -> [Components.Schemas.PlayerResult] {
+        let rounds = try await Round.query(on: db).filter(\.$game.$id == gameId).all()
+        let roundIds = try rounds.map { try $0.requireID() }
+
+        let guesses = try await Guess.query(on: db).filter(\.$round.$id ~~ roundIds).all()
+        let guessesByUser = Dictionary(grouping: guesses, by: { $0.$user.id })
+
+        let members = try await TeamMember.query(on: db)
+            .filter(\.$game.$id == gameId)
+            .with(\.$user)
+            .all()
+
+        var results = members.map { member -> Components.Schemas.PlayerResult in
+            let userGuesses = guessesByUser[member.$user.id] ?? []
+            let distances = userGuesses.compactMap(\.distance)
+            let points = userGuesses.compactMap(\.points)
+            let averageDistance = distances.isEmpty ? 0 : distances.reduce(0, +) / Double(distances.count)
+            let averagePoints = points.isEmpty ? 0 : Double(points.reduce(0, +)) / Double(points.count)
+
+            return Components.Schemas.PlayerResult(
+                playerId: member.$user.id.uuidString,
+                username: member.user.username,
+                isMVP: false,
+                averageDistanceMeters: averageDistance,
+                averagePoints: averagePoints
+            )
+        }
+
+        if let maxPoints = results.map(\.averagePoints).max(), maxPoints > 0,
+           let mvpIndex = results.firstIndex(where: { $0.averagePoints == maxPoints }) {
+            results[mvpIndex].isMVP = true
+        }
+
+        return results
+    }
+
     /// Findet Team mit höchstem Score und bestimmt das Team als Gewinner, gibt Leaderboard und Gewinner zurück
     func getGameResult(_ input: Operations.getGameResult.Input) async throws -> Operations.getGameResult.Output {
         guard let gameId = UUID(uuidString: input.path.gameId) else {
@@ -130,6 +170,7 @@ extension APIHandler {
         _ = try currentUserID()
 
         let leaderboard = try await calculateLeaderboard(gameId: gameId)
+        let players = try await calculatePlayerResults(gameId: gameId)
 
         // Team mit dem höchsten Score als Gewinner bestimmen (kein Gewinner bei Gleichstand)
         let maxScore = leaderboard.map(\.score).max()
@@ -138,6 +179,7 @@ extension APIHandler {
 
         return .ok(.init(body: .json(.init(
             winnerTeamId: winnerTeamId,
+            players: players,
             leaderboard: leaderboard
         ))))
     }
