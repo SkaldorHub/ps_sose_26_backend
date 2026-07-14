@@ -7,21 +7,38 @@ extension APIHandler {
 
     private var db: any Database { app.db }
 
+    /// Ohne diesen Check kann jeder registrierte Account Ergebnisse/Standorte/Punktzahlen
+    /// eines beliebigen fremden Spiels abrufen, sofern die gameId bekannt ist. Gibt bewusst Bool
+    /// statt throw Abort(...) zurück: ein direkt geworfener Abort-Fehler wird von der OpenAPI-
+    /// Server-Transportschicht innerhalb eines Operation-Handlers nicht auf den richtigen HTTP-
+    /// Status gemappt, sondern generisch als 500 "Something went wrong" beantwortet - nur
+    /// typisierte Operation-Outputs (.forbidden(.init())) liefern den korrekten Statuscode.
+    private func isMember(gameId: UUID, userID: UUID) async throws -> Bool {
+        try await TeamMember.query(on: db)
+            .filter(\.$game.$id == gameId)
+            .filter(\.$user.$id == userID)
+            .first() != nil
+    }
+
     /// Holt die aktuellste Runde, prüft ob calculateResults ist, holt dann Foto und alle Guesses, gibt aktuelles Ergebnis zurück.
     func getCurrentResult(_ input: Operations.getCurrentResult.Input) async throws -> Operations.getCurrentResult.Output {
-        guard let gameId = UUID(uuidString: input.path.gameId) else {
+        guard let gameId = UUID(uuidString: input.path.gameId),
+              let roundId = UUID(uuidString: input.query.roundId) else {
             return .notFound(.init())
         }
 
-        _ = try currentUserID()
+        guard let userID = AuthMiddleware.currentUserID else { return .unauthorized(.init()) }
+        guard try await isMember(gameId: gameId, userID: userID) else { return .forbidden(.init()) }
 
-        // Nach gameID filtern, Runden absteigend sortieren und die zuletzt abgeschlossene Runde nehmen
-        let rounds = try await Round.query(on: db)
+        // Explizit über roundId statt implizit "die zuletzt abgeschlossene Runde" zu erraten -
+        // verhindert, dass ein Client kurz nach einem Rundenwechsel noch das Ergebnis der
+        // vorherigen Runde bekommt (siehe GuessController.round(id:gameId:)).
+        guard let round = try await Round.query(on: db)
+            .filter(\.$id == roundId)
             .filter(\.$game.$id == gameId)
-            .sort(\.$roundNumber, .descending)
-            .all()
-
-        guard let round = rounds.first(where: { $0.currentPhase == .calculateResults }) else {
+            .first(),
+            round.currentPhase == .calculateResults
+        else {
             return .notFound(.init())
         }
 
@@ -114,7 +131,8 @@ extension APIHandler {
             return .notFound(.init())
         }
 
-        _ = try currentUserID()
+        guard let userID = AuthMiddleware.currentUserID else { return .unauthorized(.init()) }
+        guard try await isMember(gameId: gameId, userID: userID) else { return .forbidden(.init()) }
 
         let leaderboard = try await calculateLeaderboard(gameId: gameId)
 
@@ -167,7 +185,8 @@ extension APIHandler {
             return .notFound(.init())
         }
 
-        _ = try currentUserID()
+        guard let userID = AuthMiddleware.currentUserID else { return .unauthorized(.init()) }
+        guard try await isMember(gameId: gameId, userID: userID) else { return .forbidden(.init()) }
 
         let leaderboard = try await calculateLeaderboard(gameId: gameId)
         let players = try await calculatePlayerResults(gameId: gameId)
@@ -182,13 +201,5 @@ extension APIHandler {
             players: players,
             leaderboard: leaderboard
         ))))
-    }
-
-    /// Hilfsmethode zum prüfen ob der User eingeloggt ist, wirft 401 falls nicht
-    private func currentUserID() throws -> UUID {
-        guard let id = AuthMiddleware.currentUserID else {
-            throw Abort(.unauthorized)
-        }
-        return id
     }
 }

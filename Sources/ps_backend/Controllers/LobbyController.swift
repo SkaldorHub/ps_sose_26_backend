@@ -6,16 +6,23 @@ extension APIHandler {
 
     private var db: any Database { app.db }
 
-    private func currentUserID() throws -> UUID {
-        guard let id = AuthMiddleware.currentUserID else { throw Abort(.unauthorized) }
-        return id
+    /// Löst eine Spiel-ID auf. Gibt bewusst Game? statt throw Abort(.notFound) zurück: ein
+    /// direkt geworfener Abort-Fehler wird von der OpenAPI-Server-Transportschicht innerhalb
+    /// eines Operation-Handlers nicht auf den richtigen HTTP-Status gemappt, sondern generisch
+    /// als 500 "Something went wrong" beantwortet - nur typisierte Operation-Outputs
+    /// (.notFound(.init())) liefern den korrekten Statuscode.
+    private func findGame(id: String) async throws -> Game? {
+        guard let uuid = UUID(uuidString: id) else { return nil }
+        return try await Game.find(uuid, on: db)
     }
 
-    private func findGame(id: String) async throws -> Game {
-        guard let uuid = UUID(uuidString: id), let game = try await Game.find(uuid, on: db) else {
-            throw Abort(.notFound)
-        }
-        return game
+    /// Ohne diesen Check kann jeder registrierte Account fremde Spieldaten (Team-Zusammensetzung,
+    /// Spielerliste, Zustand) allein durch Kennen/Erraten einer gameId abrufen.
+    private func isMember(gameId: UUID, userID: UUID) async throws -> Bool {
+        try await TeamMember.query(on: db)
+            .filter(\.$game.$id == gameId)
+            .filter(\.$user.$id == userID)
+            .first() != nil
     }
 
     private func mapPlayer(_ member: TeamMember, hostID: UUID) -> Components.Schemas.Player {
@@ -126,7 +133,7 @@ extension APIHandler {
     }
 
     func createGame(_ input: Operations.createGame.Input) async throws -> Operations.createGame.Output {
-        let userID = try currentUserID()
+        guard let userID = AuthMiddleware.currentUserID else { return .unauthorized(.init()) }
         switch input.body {
         case .json(let body):
             guard let settings = resolveGameSettings(
@@ -165,7 +172,7 @@ extension APIHandler {
     }
 
     func joinGame(_ input: Operations.joinGame.Input) async throws -> Operations.joinGame.Output {
-        let userID = try currentUserID()
+        guard let userID = AuthMiddleware.currentUserID else { return .unauthorized(.init()) }
         switch input.body {
         case .json(let body):
             guard let game = try await Game.query(on: db).filter(\.$code == body.code).first() else {
@@ -198,19 +205,61 @@ extension APIHandler {
     }
 
     func getGame(_ input: Operations.getGame.Input) async throws -> Operations.getGame.Output {
-        let game = try await findGame(id: input.path.gameId)
+        guard let userID = AuthMiddleware.currentUserID else { return .unauthorized(.init()) }
+        guard let game = try await findGame(id: input.path.gameId) else { return .notFound(.init()) }
+        guard try await isMember(gameId: try game.requireID(), userID: userID) else { return .forbidden(.init()) }
         return .ok(.init(body: .json(try await mapGame(game))))
     }
 
-    func startGame(_ input: Operations.startGame.Input) async throws -> Operations.startGame.Output {
-        let userID = try currentUserID()
-        let game = try await findGame(id: input.path.gameId)
+    /// Löscht ein Lobby-Spiel unabhängig davon, ob noch andere Spieler drin sind - anders als
+    /// leaveGame (das bei Host-Abgang nur den nächsten Spieler zum Host befördert, sofern noch
+    /// wer da ist). Nur im Lobby-State möglich: gestartete Spiele haben bereits Rounds/Photos/
+    /// Guesses, deren FK-Constraints (onDelete: .restrict) ein einfaches Löschen verhindern.
+    func deleteGame(_ input: Operations.deleteGame.Input) async throws -> Operations.deleteGame.Output {
+        guard let userID = AuthMiddleware.currentUserID else { return .unauthorized(.init()) }
+        guard let game = try await findGame(id: input.path.gameId) else { return .notFound(.init()) }
         guard game.$host.id == userID else { return .forbidden(.init()) }
         guard game.state == .lobby else { return .conflict(.init()) }
 
         let gameID = try game.requireID()
-        let playerCount = try await TeamMember.query(on: db).filter(\.$game.$id == gameID).count()
-        guard playerCount >= 2 else { return .conflict(.init()) }
+        try await db.transaction { db in
+            let members = try await TeamMember.query(on: db).filter(\.$game.$id == gameID).all()
+            for member in members {
+                try await member.delete(on: db)
+            }
+
+            let participates = try await Participate.query(on: db).filter(\.$game.$id == gameID).all()
+            let teamIDs = participates.map { $0.$team.id }
+            for participate in participates {
+                try await participate.delete(on: db)
+            }
+
+            let teams = try await Team.query(on: db).filter(\.$id ~~ teamIDs).all()
+            for team in teams {
+                try await team.delete(on: db)
+            }
+
+            try await game.delete(on: db)
+        }
+
+        return .noContent
+    }
+
+    func startGame(_ input: Operations.startGame.Input) async throws -> Operations.startGame.Output {
+        guard let userID = AuthMiddleware.currentUserID else { return .unauthorized(.init()) }
+        guard let game = try await findGame(id: input.path.gameId) else { return .notFound(.init()) }
+        guard game.$host.id == userID else { return .forbidden(.init()) }
+        guard game.state == .lobby else { return .conflict(.init()) }
+
+        let gameID = try game.requireID()
+        let members = try await TeamMember.query(on: db).filter(\.$game.$id == gameID).all()
+        // Nicht nur Gesamtzahl >=2 prüfen: Wird ein Team durch kickPlayer komplett leer, bevor
+        // der Host startet, erzeugt createRounds für dieses Team keinen RoundPhotographer/
+        // RoundResult, und PhaseScheduler.resolveRoundResults bricht die Auswertung für die
+        // ganze Runde ab (guard teamIDs.count == 2) - das Spiel "hängt" inhaltlich fest, ohne
+        // dass ein Fehler sichtbar wird.
+        let teamsWithMembers = Set(members.map(\.$team.id))
+        guard teamsWithMembers.count >= 2 else { return .conflict(.init()) }
 
         try await db.transaction { db in
             game.state = .running
@@ -223,8 +272,8 @@ extension APIHandler {
     }
 
     func leaveGame(_ input: Operations.leaveGame.Input) async throws -> Operations.leaveGame.Output {
-        let userID = try currentUserID()
-        let game = try await findGame(id: input.path.gameId)
+        guard let userID = AuthMiddleware.currentUserID else { return .unauthorized(.init()) }
+        guard let game = try await findGame(id: input.path.gameId) else { return .notFound(.init()) }
         let gameID = try game.requireID()
 
         guard game.state == .lobby else { return .conflict(.init()) }
@@ -254,8 +303,10 @@ extension APIHandler {
     }
 
     func listPlayers(_ input: Operations.listPlayers.Input) async throws -> Operations.listPlayers.Output {
-        let game = try await findGame(id: input.path.gameId)
+        guard let userID = AuthMiddleware.currentUserID else { return .unauthorized(.init()) }
+        guard let game = try await findGame(id: input.path.gameId) else { return .notFound(.init()) }
         let gameID = try game.requireID()
+        guard try await isMember(gameId: gameID, userID: userID) else { return .forbidden(.init()) }
         let members = try await TeamMember.query(on: db)
             .filter(\.$game.$id == gameID)
             .with(\.$user)
@@ -264,8 +315,8 @@ extension APIHandler {
     }
 
     func kickPlayer(_ input: Operations.kickPlayer.Input) async throws -> Operations.kickPlayer.Output {
-        let userID = try currentUserID()
-        let game = try await findGame(id: input.path.gameId)
+        guard let userID = AuthMiddleware.currentUserID else { return .unauthorized(.init()) }
+        guard let game = try await findGame(id: input.path.gameId) else { return .notFound(.init()) }
         guard game.$host.id == userID else { return .forbidden(.init()) }
         guard game.state == .lobby else { return .conflict(.init()) }
 
@@ -281,8 +332,10 @@ extension APIHandler {
     }
 
     func listTeams(_ input: Operations.listTeams.Input) async throws -> Operations.listTeams.Output {
-        let game = try await findGame(id: input.path.gameId)
+        guard let userID = AuthMiddleware.currentUserID else { return .unauthorized(.init()) }
+        guard let game = try await findGame(id: input.path.gameId) else { return .notFound(.init()) }
         let gameID = try game.requireID()
+        guard try await isMember(gameId: gameID, userID: userID) else { return .forbidden(.init()) }
         let hostID = game.$host.id
 
         let participates = try await Participate.query(on: db).filter(\.$game.$id == gameID).all()
@@ -319,7 +372,10 @@ extension APIHandler {
     }
 
     func getGamesForPlayer(_ input: Operations.getGamesForPlayer.Input) async throws -> Operations.getGamesForPlayer.Output {
-        guard let playerUUID = UUID(uuidString: input.path.playerId) else { throw Abort(.badRequest) }
+        guard let userID = AuthMiddleware.currentUserID else { return .unauthorized(.init()) }
+        guard let playerUUID = UUID(uuidString: input.path.playerId), playerUUID == userID else {
+            return .ok(.init(body: .json([])))
+        }
         let memberships = try await TeamMember.query(on: db)
             .filter(\.$user.$id == playerUUID)
             .all()

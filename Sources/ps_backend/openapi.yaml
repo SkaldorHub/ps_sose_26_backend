@@ -64,6 +64,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthResponse"
+        "400": { description: Malformed request body }
         "401": { description: Wrong credentials }
 
   /auth/logout:
@@ -142,8 +143,26 @@ paths:
                 $ref: "#/components/schemas/Game"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteGame
+      tags: [Lobby]
+      summary: Delete game (host only, lobby state only)
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "204": { description: Game deleted }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Not the host
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Game already started
 
   /games/{gameId}/start:
     post:
@@ -202,6 +221,8 @@ paths:
                   $ref: "#/components/schemas/Player"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -247,6 +268,8 @@ paths:
                   $ref: "#/components/schemas/Team"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -294,6 +317,8 @@ paths:
                 $ref: "#/components/schemas/Round"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -312,8 +337,14 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [photo, lat, lng]
+              required: [roundId, photo, lat, lng]
               properties:
+                roundId:
+                  type: string
+                  format: uuid
+                  description: >
+                    Runde, für die dieses Foto gilt (aus Round.id) - Server validiert explizit
+                    gegen diese Runde statt "aktuelle Runde" implizit per Phase abzuleiten.
                 photo:
                   type: string
                   format: binary
@@ -325,6 +356,7 @@ paths:
                 contentType: image/*
       responses:
         "201": { description: Photo uploaded }
+        "400": { description: Malformed request body }
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -351,6 +383,8 @@ paths:
                 $ref: "#/components/schemas/UploadStatus"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -405,6 +439,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Guess"
+        "400": { description: Malformed request body }
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -421,6 +456,7 @@ paths:
       summary: Get all submitted guesses
       parameters:
         - $ref: "#/components/parameters/GameId"
+        - $ref: "#/components/parameters/RoundId"
       responses:
         "200":
           description: OK
@@ -447,6 +483,7 @@ paths:
       summary: Get current round result
       parameters:
         - $ref: "#/components/parameters/GameId"
+        - $ref: "#/components/parameters/RoundId"
       responses:
         "200":
           description: OK
@@ -456,6 +493,8 @@ paths:
                 $ref: "#/components/schemas/RoundResult"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -477,6 +516,8 @@ paths:
                   $ref: "#/components/schemas/LeaderboardEntry"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -496,6 +537,8 @@ paths:
                 $ref: "#/components/schemas/GameResult"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -514,6 +557,18 @@ components:
       name: gameId
       in: path
       required: true
+      schema:
+        type: string
+        format: uuid
+
+    RoundId:
+      name: roundId
+      in: query
+      required: true
+      description: >
+        Explizite Runden-ID (aus Round.id), gegen die validiert wird - verhindert eine Race
+        zwischen dem 5s-Phasen-Scheduler und einer serverseitig implizit abgeleiteten
+        "aktuellen Runde" an Runden-Grenzen.
       schema:
         type: string
         format: uuid
@@ -680,8 +735,14 @@ components:
     # ── Guess ─────────────────────────────
     GuessRequest:
       type: object
-      required: [lat, lng]
+      required: [roundId, lat, lng]
       properties:
+        roundId:
+          type: string
+          format: uuid
+          description: >
+            Runde, für die dieser Tipp gilt (aus Round.id) - Server validiert explizit gegen
+            diese Runde statt "aktuelle Runde" implizit per Phase abzuleiten.
         lat:
           {
             type: number,

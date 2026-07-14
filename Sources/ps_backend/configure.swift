@@ -60,6 +60,8 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateRoundResult())
     app.migrations.add(AddGameFields())
     app.migrations.add(RenamePhaseDurationFields())
+    app.migrations.add(AddUsernameUniqueConstraint())
+    app.migrations.add(AddPhotoUniqueConstraint())
 
     // add queues
     app.queues.schedule(PhaseScheduler()).every(seconds: 5)

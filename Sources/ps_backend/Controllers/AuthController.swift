@@ -19,7 +19,7 @@ extension APIHandler {
     }
 
     func register(_ input: Operations.register.Input) async throws -> Operations.register.Output {
-        guard case let .json(body) = input.body else { throw Abort(.badRequest) }
+        guard case let .json(body) = input.body else { return .badRequest(.init()) }
         guard body.username.count >= 3, body.password.count >= 6 else {
             return .badRequest(.init())
         }
@@ -28,7 +28,14 @@ extension APIHandler {
         }
 
         let user = User(username: body.username, passwordHash: try Bcrypt.hash(body.password))
-        try await user.save(on: app.db)
+        do {
+            try await user.save(on: app.db)
+        } catch let error as any DatabaseError where error.isConstraintFailure {
+            // Zwei parallele register()-Requests mit demselben Usernamen können den obigen
+            // findUser-Check beide passieren (TOCTOU) - der DB-Unique-Constraint auf username
+            // ist die eigentliche Absicherung, dieser Fall ist also kein Server-Fehler.
+            return .badRequest(.init())
+        }
 
         return .created(.init(body: .json(.init(
             token: try await issueToken(for: user),
@@ -38,7 +45,7 @@ extension APIHandler {
     }
 
     func login(_ input: Operations.login.Input) async throws -> Operations.login.Output {
-        guard case let .json(body) = input.body else { throw Abort(.badRequest) }
+        guard case let .json(body) = input.body else { return .badRequest(.init()) }
         guard let user = try await findUser(username: body.username) else {
             return .unauthorized(.init())
         }
