@@ -1,6 +1,6 @@
-# Streetsnap Backend
+# StreetSnap Backend
 
-Vapor-Backend für die Streetsnap iOS App.
+Vapor-Backend für die StreetSnap iOS App.
 
 ## Stack
 
@@ -97,7 +97,7 @@ lokal (`docker compose up`) oder gegen ein Remote-Deployment.
 
 ## Lizenz
 
-Copyright (C) 2026 Streetsnap contributors
+Copyright (C) 2026 StreetSnap contributors
 
 AGPLv3 — siehe [LICENSE](LICENSE). Insbesondere: wer eine modifizierte Version
 dieses Backends als Netzwerkdienst betreibt, muss den entsprechenden
