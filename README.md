@@ -1,6 +1,6 @@
-# GeoGame Backend
+# Streetsnap Backend
 
-Vapor-Backend für die GeoGame iOS App.
+Vapor-Backend für die Streetsnap iOS App.
 
 ## Stack
 
@@ -69,11 +69,13 @@ backend/
 ├── Sources/
 │   └── ps_backend/
 │       ├── Controllers/       # Request Handler (Lobby, Round, User, ...)
-│       ├── Models/            # Fluent Models & Migrations
+│       ├── Models/            # Fluent Models
+│       ├── Migrations/        # Fluent Migrations
 │       ├── DTOs/              # Request/Response Structs (Codable)
 │       ├── Services/          # Business Logic (z.B. Score-Berechnung, MinIO)
-│       ├── WebSockets/        # WebSocket Handler & Message-Typen
 │       ├── Middleware/        # Auth, Logging, ...
+│       ├── Docs/              # Zusatzdokumentation (z.B. Datenbankschema)
+│       ├── openapi.yaml       # Source of Truth für alle Endpunkte
 │       ├── configure.swift    # App-Konfiguration, DB, Migrations
 │       └── routes.swift       # Alle Routen registriert
 ├── Tests/
@@ -85,10 +87,13 @@ backend/
 
 ## Teststrategie
 
-Für den Backend Services sind E2E-Tests geplant, welche definierte User Gameflows durchgehen.
+E2E-Tests, die komplette Gameflows durchspielen, liegen im Frontend-Repo
+(`ps_sose_26/scripts/e2e_test.sh`) und laufen wahlweise gegen dieses Backend
+lokal (`docker compose up`) oder gegen ein Remote-Deployment.
 
-- Spiel starten, spielen und erfolgreich beenden
-- 4 User spielen (müssen sich neu registrieren)
+## Dokumentation
+
+- [Datenbankschema](Sources/ps_backend/Docs/DATABASE.md) — ER-Diagramm & Tabellenübersicht
 
 ## Lizenz
 
