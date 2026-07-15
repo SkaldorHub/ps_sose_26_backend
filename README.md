@@ -89,3 +89,11 @@ Für den Backend Services sind E2E-Tests geplant, welche definierte User Gameflo
 
 - Spiel starten, spielen und erfolgreich beenden
 - 4 User spielen (müssen sich neu registrieren)
+
+## Lizenz
+
+Copyright (C) 2026 Streetsnap contributors
+
+AGPLv3 — siehe [LICENSE](LICENSE). Insbesondere: wer eine modifizierte Version
+dieses Backends als Netzwerkdienst betreibt, muss den entsprechenden
+Quellcode allen Nutzer:innen dieses Dienstes zugänglich machen (§13 AGPLv3).
